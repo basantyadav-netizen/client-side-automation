@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "Agent(onboarding-orchestrator)",
+      "Agent(machine-configurer)",
+      "Agent(xcode-installer)",
+      "Agent(homebrew-installer)",
+      "Agent(git-configurer)",
+
+      "Read(./machine_config.json)",
+      "Read(./basic_info.json)",
+      "Write(./machine_config.json)",
+      "Write(./onboarding-report.md)",
+
+      "Bash(uname:*)",
+      "Bash(scutil:*)",
+      "Bash(hostname)",
+      "Bash(id:*)",
+      "Bash(whoami)",
+      "Bash(sw_vers:*)",
+      "Bash(sysctl:*)",
+      "Bash(diskutil info:*)",
+      "Bash(df:*)",
+      "Bash(date:*)",
+      "Bash(python3 -m json.tool:*)",
+
+      "Bash(xcode-select:*)",
+      "Bash(clang --version)",
+      "Bash(git --version)",
+      "Bash(softwareupdate:*)",
+
+      "Bash(command -v brew)",
+      "Bash(brew --version)",
+      "Bash(brew config)",
+      "Bash(brew doctor)",
+      "Bash(brew install git)",
+
+      "Bash(git config --global:*)",
+      "Bash(git config --global --get:*)"
+    ],
+    "deny": []
+  }
+}
