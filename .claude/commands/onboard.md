@@ -1,5 +1,5 @@
 ---
-description: Run the full new-employee macOS onboarding pipeline (machine config → Xcode CLT → Homebrew → git → GitHub SSH); resumable
+description: Run the full new-employee macOS onboarding pipeline (machine config → Xcode CLT → Homebrew → git → GitHub SSH → VS Code); resumable
 argument-hint: "[optional: \"Full Name\" email@gmail.com]"
 allowed-tools: Agent, Bash, Read
 model: opus
@@ -36,6 +36,7 @@ unfinished step** (skipping any already `done`), then execute these specialists
 4. **git-configurer** → installs git, sets global identity from `.env` (`GIT_USERNAME` / `GIT_EMAIL`)
 5. **github-ssh-configurer** → generates/uploads the SSH key to GitHub using the PAT +
    email from `.env`, then verifies with `ssh -T git@github.com`
+6. **vscode-installer** → installs VS Code via Homebrew cask (non-interactive) + the `code` CLI
 
 Each specialist records its own result (`done`/`failed`) in `onboarding-session.json`;
 the orchestrator owns the file and the resume logic.

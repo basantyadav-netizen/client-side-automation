@@ -37,7 +37,14 @@
       "note": "Reused existing ed25519 key; authenticated with PAT; key uploaded to GitHub; ssh -T git@github.com verified successfully",
       "updated_at": "2026-06-16T12:16:25+05:30",
       "order": 5
+    },
+    {
+      "name": "vscode-installer",
+      "status": "done",
+      "note": "already-present; app bundle at /Applications/Visual Studio Code.app; code --version: 1.123.0 (arm64)",
+      "updated_at": "2026-06-16T12:47:46+05:30",
+      "order": 6
     }
   ],
-  "updated_at": "2026-06-16T12:16:36+05:30"
+  "updated_at": "2026-06-16T12:47:59+05:30"
 }
