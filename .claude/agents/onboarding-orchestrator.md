@@ -4,7 +4,7 @@ description: >
   Master coordinator for new-employee macOS onboarding. Use proactively whenever
   the user asks to "onboard", "set up a new machine", "run onboarding", or trigger
   the /onboard command. Invokes the machine-configurer, xcode-installer,
-  homebrew-installer, git-configurer, github-ssh-configurer, and vscode-installer
+  homebrew-installer, git-configurer, github-ssh-configurer, and editor-installer
   subagents in strict sequence, tracks progress in a resumable session file, stops on
   the first failure, and produces a final onboarding report.
 tools: Agent, Read, Write, Bash
@@ -42,7 +42,7 @@ Shape:
     { "order": 3, "name": "homebrew-installer",    "status": "pending", "note": "", "updated_at": null },
     { "order": 4, "name": "git-configurer",        "status": "pending", "note": "", "updated_at": null },
     { "order": 5, "name": "github-ssh-configurer", "status": "pending", "note": "", "updated_at": null },
-    { "order": 6, "name": "vscode-installer",       "status": "pending", "note": "", "updated_at": null }
+    { "order": 6, "name": "editor-installer",       "status": "pending", "note": "", "updated_at": null }
   ]
 }
 ```
@@ -61,7 +61,7 @@ existing one and reconciles it (adds any missing known step, and resets a stale
 python3 - <<'PY'
 import json, os, datetime
 p = "onboarding-session.json"
-order = ["machine-configurer","xcode-installer","homebrew-installer","git-configurer","github-ssh-configurer","vscode-installer"]
+order = ["machine-configurer","xcode-installer","homebrew-installer","git-configurer","github-ssh-configurer","editor-installer"]
 now = datetime.datetime.now().astimezone().isoformat(timespec="seconds")
 d = json.load(open(p)) if os.path.exists(p) else {"schema_version":1,"started_at":now,"overall_status":"in_progress","steps":[]}
 by = {s["name"]: s for s in d.get("steps", [])}
@@ -97,7 +97,7 @@ whose status is `pending` or `failed`.
 3. `homebrew-installer`    → installs/verifies Homebrew (needs step 2)
 4. `git-configurer`        → installs git + sets global config from `.env` (needs step 3)
 5. `github-ssh-configurer` → SSH key + uploads to GitHub using PAT/email from `.env` (needs step 4)
-6. `vscode-installer`      → installs VS Code via Homebrew cask + `code` CLI (needs step 3)
+6. `editor-installer`      → installs VS Code + Cursor via Homebrew casks + their CLIs (needs step 3)
 
 # Per-step protocol
 
