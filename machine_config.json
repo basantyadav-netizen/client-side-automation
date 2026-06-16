@@ -1,0 +1,13 @@
+{
+  "machine_name": "BTYADAV-PAT-IN",
+  "user_name": "basant.kumar",
+  "os_name": "macOS",
+  "os_version": "26.5.1",
+  "os_build": "25F80",
+  "ram_gb": 16,
+  "cpu": "Apple M1 Pro",
+  "architecture": "arm64",
+  "ssd_total": "494.4 GB",
+  "ssd_type": "SSD",
+  "captured_at": "2026-06-16T06:42:42Z"
+}

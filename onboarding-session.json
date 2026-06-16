@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "started_at": "2026-06-16T12:12:22+05:30",
+  "overall_status": "complete",
+  "steps": [
+    {
+      "name": "machine-configurer",
+      "status": "done",
+      "note": "MacBook Pro, 16 GB RAM, macOS 26.5.1 (arm64)",
+      "updated_at": "2026-06-16T12:12:53+05:30",
+      "order": 1
+    },
+    {
+      "name": "xcode-installer",
+      "status": "done",
+      "note": "Already present at /Library/Developer/CommandLineTools; clang 21.0.0, git 2.50.1",
+      "updated_at": "2026-06-16T12:13:33+05:30",
+      "order": 2
+    },
+    {
+      "name": "homebrew-installer",
+      "status": "done",
+      "note": "/opt/homebrew prefix, Homebrew 6.0.1, already-present",
+      "updated_at": "2026-06-16T12:14:11+05:30",
+      "order": 3
+    },
+    {
+      "name": "git-configurer",
+      "status": "done",
+      "note": "configured user.name=Jane Doe and user.email from basic_info.json; git 2.50.1",
+      "updated_at": "2026-06-16T12:15:10+05:30",
+      "order": 4
+    },
+    {
+      "name": "github-ssh-configurer",
+      "status": "done",
+      "note": "Reused existing ed25519 key; authenticated with PAT; key uploaded to GitHub; ssh -T git@github.com verified successfully",
+      "updated_at": "2026-06-16T12:16:25+05:30",
+      "order": 5
+    }
+  ],
+  "updated_at": "2026-06-16T12:16:36+05:30"
+}

@@ -70,6 +70,28 @@ git and Homebrew.
   Update server" → retry once; if persistent, report and emit `STATUS: FAIL`.
 - Network/timeout → report the failure clearly so the orchestrator stops the pipeline.
 
+# Session tracking (update your own step before finishing)
+
+If `onboarding-session.json` exists in the project root (it does when the
+onboarding-orchestrator runs you), update **only your own** step entry — `done` on
+success, `failed` on error — with a short note. Do not touch other steps or the file's
+structure. If the file is absent (you were run standalone), this is a no-op.
+
+```bash
+python3 - "xcode-installer" "done" "<short note matching your DETAILS>" <<'PY'
+import json, sys, os, datetime
+p = "onboarding-session.json"
+if os.path.exists(p):
+    d = json.load(open(p)); now = datetime.datetime.now().astimezone().isoformat(timespec="seconds")
+    for s in d.get("steps", []):
+        if s.get("name") == sys.argv[1]:
+            s["status"] = sys.argv[2]; s["note"] = sys.argv[3]; s["updated_at"] = now
+    d["updated_at"] = now; json.dump(d, open(p, "w"), indent=2)
+PY
+```
+
+Use `failed` (with the error in the note) instead of `done` if you emit `STATUS: FAIL`.
+
 # Output (always end with this block)
 
 ```
