@@ -6,6 +6,9 @@
       "Agent(xcode-installer)",
       "Agent(homebrew-installer)",
       "Agent(git-configurer)",
+      "Agent(rbenv-installer)",
+      "Agent(git-cloner)",
+      "Agent(repo-setup)",
 
       "Read(./machine_config.json)",
       "Read(./basic_info.json)",
@@ -36,7 +39,37 @@
       "Bash(brew install git)",
 
       "Bash(git config --global:*)",
-      "Bash(git config --global --get:*)"
+      "Bash(git config --global --get:*)",
+
+      "Bash(which rbenv)",
+      "Bash(rbenv --version)",
+      "Bash(rbenv init:*)",
+      "Bash(brew install rbenv ruby-build)",
+      "Bash(grep:*)",
+      "Bash(echo:*)",
+
+      "Bash(yq:*)",
+      "Bash(brew install yq)",
+      "Bash(mkdir:*)",
+      "Bash(git clone:*)",
+      "Bash(sort:*)",
+      "Bash(wc:*)",
+
+      "Bash(rbenv install:*)",
+      "Bash(rbenv local:*)",
+      "Bash(rbenv version)",
+      "Bash(rbenv versions:*)",
+      "Bash(gem install bundler:*)",
+      "Bash(bundle config:*)",
+      "Bash(bundle install)",
+      "Bash(bundle exec rails db:create)",
+      "Bash(bundle exec rails db:migrate)",
+      "Bash(bundle exec rails db:seed)",
+      "Bash(bundle exec rails server:*)",
+      "Bash(curl:*)",
+      "Bash(kill:*)",
+      "Bash(seq:*)",
+      "Read(.env.example)"
     ],
     "deny": []
   }
