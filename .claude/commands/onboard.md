@@ -1,5 +1,5 @@
 ---
-description: Run the full new-employee macOS onboarding pipeline (machine config → Xcode CLT → Homebrew → git → GitHub SSH → VS Code); resumable
+description: Run the full new-employee macOS onboarding pipeline (machine config → Xcode CLT → Homebrew → git → GitHub SSH → VS Code → rbenv → clone repos → setup repos); resumable
 argument-hint: "[optional: \"Full Name\" email@gmail.com]"
 allowed-tools: Agent, Bash, Read
 model: opus
@@ -37,6 +37,9 @@ unfinished step** (skipping any already `done`), then execute these specialists
 5. **github-ssh-configurer** → generates/uploads the SSH key to GitHub using the PAT +
    email from `.env`, then verifies with `ssh -T git@github.com`
 6. **vscode-installer** → installs VS Code via Homebrew cask (non-interactive) + the `code` CLI
+7. **rbenv-installer** → installs rbenv + ruby-build, initializes in `~/.zshrc`
+8. **git-cloner** → reads repo list from `config.yaml`, clones each into `~/repos/`
+9. **repo-setup** → for every cloned Rails repo: installs correct Ruby, bundles gems (private gems via tokens in `.env`), creates/migrates DB, verifies server boots
 
 Each specialist records its own result (`done`/`failed`) in `onboarding-session.json`;
 the orchestrator owns the file and the resume logic.

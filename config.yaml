@@ -1,0 +1,8 @@
+github:
+  host: github.com          # change to your-firm.github.com for enterprise
+  org: your-org-name        # GitHub org or user that owns the repos
+  clone_protocol: ssh       # ssh | https
+  repos:
+    - repo-name-1
+    - repo-name-2
+    - repo-name-3
