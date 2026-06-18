@@ -4,7 +4,7 @@ description: >
   Master coordinator for new-employee macOS onboarding. Use proactively whenever
   the user asks to "onboard", "set up a new machine", "run onboarding", or trigger
   the /onboard command. Invokes the machine-configurer, xcode-installer,
-  homebrew-installer, git-configurer, github-ssh-configurer, editor-installer, postgres-installer, rbenv-installer, git-cloner, and repo-setup
+  homebrew-installer, git-configurer, github-ssh-configurer, editor-installer, postgres-installer, rbenv-installer, aws-vpn-installer, git-cloner, and repo-setup
   subagents in strict sequence, tracks progress in a resumable session file, stops on
   the first failure, and produces a final onboarding report.
 tools: Agent, Read, Write, Bash
@@ -45,8 +45,9 @@ Shape:
     { "order": 6, "name": "editor-installer",       "status": "pending", "note": "", "updated_at": null },
     { "order": 7, "name": "postgres-installer",    "status": "pending", "note": "", "updated_at": null },
     { "order": 8, "name": "rbenv-installer",       "status": "pending", "note": "", "updated_at": null },
-    { "order": 9, "name": "git-cloner",            "status": "pending", "note": "", "updated_at": null },
-    { "order": 10, "name": "repo-setup",           "status": "pending", "note": "", "updated_at": null }installs VS Code via Homebrew cask + `code` CLI (needs step 3)
+    { "order": 9, "name": "aws-vpn-installer",     "status": "pending", "note": "", "updated_at": null },
+    { "order": 10, "name": "git-cloner",           "status": "pending", "note": "", "updated_at": null },
+    { "order": 11, "name": "repo-setup",           "status": "pending", "note": "", "updated_at": null }
   ]
 }
 ```
@@ -65,7 +66,7 @@ existing one and reconciles it (adds any missing known step, and resets a stale
 python3 - <<'PY'
 import json, os, datetime
 p = "onboarding-session.json"
-order = ["machine-configurer","xcode-installer","homebrew-installer","git-configurer","github-ssh-configurer","editor-installer","postgres-installer","rbenv-installer","git-cloner","repo-setup"]
+order = ["machine-configurer","xcode-installer","homebrew-installer","git-configurer","github-ssh-configurer","editor-installer","postgres-installer","rbenv-installer","aws-vpn-installer","git-cloner","repo-setup"]
 now = datetime.datetime.now().astimezone().isoformat(timespec="seconds")
 d = json.load(open(p)) if os.path.exists(p) else {"schema_version":1,"started_at":now,"overall_status":"in_progress","steps":[]}
 by = {s["name"]: s for s in d.get("steps", [])}
@@ -104,8 +105,9 @@ whose status is `pending` or `failed`.
 6. `editor-installer`     → installs VS Code + Cursor via Homebrew casks + their CLIs (needs step 3)
 7. `postgres-installer`   → installs PostgreSQL via Homebrew (needs step 3)
 8. `rbenv-installer`      → installs rbenv + ruby-build, adds init line to `~/.zshrc` (needs step 3)
-9. `git-cloner`           → reads repos from `config.yaml`, clones each into `~/repos/` (needs step 5)
-10. `repo-setup`           → installs gems, runs DB setup for every cloned Rails repo (needs steps 7 & 8)
+9. `aws-vpn-installer`    → installs AWS VPN Client, adds the Pattern profile, opens the app for the user to connect + do MFA (needs step 3; sudo handled by the NOPASSWD bridge)
+10. `git-cloner`           → reads repos from `config.yaml`, clones each into `~/repos/` (needs step 5)
+11. `repo-setup`           → installs gems, runs DB setup for every cloned Rails repo (needs steps 7 & 8)
 
 # Per-step protocol
 

@@ -27,17 +27,37 @@ Also probe the standard locations in case `brew` just isn't on PATH yet:
 
 # Install steps (only if not present)
 
-Use the official installer in **non-interactive** mode so it doesn't block on a prompt:
+The **only** thing Homebrew needs root for is creating and owning its prefix (which lives
+under root-owned `/opt` or `/usr`). Once that directory exists and is owned by the user,
+`install.sh` runs with **no sudo at all**. So bootstrap the prefix first using the two
+passwordless commands granted by the **Homebrew sudo bridge** (`setup-sudo-bridge-homebrew.sh`),
+then run the installer.
+
+Detect the prefix the same way the bridge does (so the commands match the rules), then
+pre-create + own it:
 
 ```bash
+case "$(uname -m)" in
+  arm64) PREFIX="/opt/homebrew" ;;   # Apple Silicon
+  *)     PREFIX="/usr/local"    ;;   # Intel
+esac
+
+[ -d "$PREFIX" ] || sudo /bin/mkdir -p "$PREFIX"          # bridge: NOPASSWD, pinned to $PREFIX
+sudo /usr/sbin/chown -R "$(whoami):admin" "$PREFIX"       # bridge: NOPASSWD, pinned to $PREFIX
+
 NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
 Notes:
 - `NONINTERACTIVE=1` avoids the "Press RETURN to continue" prompt.
-- The installer needs `sudo` for the first install; if running unattended, ensure
-  sudo is pre-authorized (see the repo README on permissions). If sudo cannot be
-  obtained, report it and emit `STATUS: FAIL` rather than hanging.
+- The two `sudo` lines are **exactly** the commands the bridge allows without a password
+  (pinned to `$PREFIX` only). They make the prefix user-owned so the installer needs no
+  further sudo. Run them verbatim — do not add flags or change the path, or they won't
+  match the sudoers rule.
+- If those `sudo` lines fail with `a terminal is required to read the password` / `no tty`,
+  the bridge isn't installed. Stop and emit `STATUS: FAIL`, telling the user to run
+  `bash setup-sudo-bridge-homebrew.sh` once in a normal terminal, then re-run. Do not loop
+  or fall back to any workaround.
 
 # PATH setup (critical — the installer does NOT modify your current shell)
 
