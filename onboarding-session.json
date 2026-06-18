@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "started_at": "2026-06-16T12:12:22+05:30",
-  "overall_status": "complete",
+  "overall_status": "stopped",
   "steps": [
     {
       "name": "machine-configurer",
@@ -44,7 +44,42 @@
       "note": "VS Code already-present (code 1.123.0); Cursor installed via cask (cursor 3.7.36); both CLIs on PATH at /opt/homebrew/bin",
       "updated_at": "2026-06-16T14:13:22+05:30",
       "order": 6
+    },
+    {
+      "name": "postgres-installer",
+      "status": "done",
+      "note": "postgresql@16 (16.14) installed, PATH set, service started (listening on port 5433; 5432 occupied by another postgres instance), connection verified",
+      "updated_at": "2026-06-17T22:20:04+05:30",
+      "order": 7
+    },
+    {
+      "name": "rbenv-installer",
+      "status": "done",
+      "note": "rbenv 1.3.2 installed via Homebrew; ruby-build 20260616 installed; eval \"$(rbenv init - zsh)\" added to ~/.zshrc; all verification checks passed",
+      "updated_at": "2026-06-17T22:27:47+05:30",
+      "order": 8
+    },
+    {
+      "name": "aws-vpn-installer",
+      "status": "done",
+      "note": "AWS VPN Client installed via pkg installer; Pattern profile already present; app opened",
+      "updated_at": "2026-06-18T10:17:59+05:30",
+      "order": 9
+    },
+    {
+      "name": "git-cloner",
+      "status": "failed",
+      "note": "config.yaml contains only placeholder values (org: your-org-name, repos: repo-name-1/2/3); no real repos were cloned; update config.yaml with the actual GitHub org and repo names, then re-run git-cloner",
+      "updated_at": "2026-06-18T10:30:00+05:30",
+      "order": 10
+    },
+    {
+      "name": "repo-setup",
+      "status": "pending",
+      "note": "",
+      "updated_at": null,
+      "order": 11
     }
   ],
-  "updated_at": "2026-06-16T14:13:38+05:30"
+  "updated_at": "2026-06-18T10:19:55+05:30"
 }

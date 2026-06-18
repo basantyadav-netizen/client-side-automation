@@ -4,8 +4,10 @@ description: >
   Fully automates GitHub SSH key setup. Reads a GitHub PAT and email from the project
   root `.env`, ensures an ed25519 SSH key exists (generating one only if missing),
   installs the `gh` CLI if absent, authenticates with the PAT, uploads the SSH public
-  key to GitHub, and verifies the connection. Use whenever the user asks to "set up
-  GitHub SSH", "add my SSH key to GitHub", or "configure git over SSH".
+  key to GitHub, verifies the connection, and — if the org enforces SAML SSO — opens the
+  GitHub keys page so the user can authorize the key for the org, waiting until access is
+  confirmed before finishing. Use whenever the user asks to "set up GitHub SSH", "add my
+  SSH key to GitHub", or "configure git over SSH".
 tools: Bash, Read
 model: sonnet
 color: blue
@@ -96,10 +98,73 @@ ssh -T git@github.com
 A response containing `successfully authenticated` (GitHub returns exit code 1 on this
 greeting even on success) means it worked. Report the message.
 
+# Step 7 — authorize the key for the org's SAML SSO (hand-off + wait, only if required)
+
+Orgs that enforce **SAML SSO** require **each SSH key to be explicitly authorized** before
+it can reach their private repos. There is **no API** for this — it's a one-click action in
+the GitHub web UI that runs a SAML/IdP login. So the agent **opens the page, hands off to
+the user for that single click, waits until it detects access, then continues.** This must
+succeed before the later `git-cloner` step can clone the org's private repos.
+
+Read the host, org, and a test repo from `config.yaml` (do not hardcode them):
+
+```bash
+HOST=$(grep -E '^[[:space:]]*host:' config.yaml 2>/dev/null | head -1 | sed 's/#.*//' | awk '{print $2}')
+ORG=$(grep -E '^[[:space:]]*org:'  config.yaml 2>/dev/null | head -1 | sed 's/#.*//' | awk '{print $2}')
+REPO=$(grep -E '^[[:space:]]*-[[:space:]]' config.yaml 2>/dev/null | head -1 | sed 's/#.*//; s/^[[:space:]]*-[[:space:]]*//' | tr -d '[:space:]')
+HOST=${HOST:-github.com}
+TEST="git@${HOST}:${ORG}/${REPO}.git"
+export GIT_SSH_COMMAND='ssh -o StrictHostKeyChecking=accept-new'   # don't block on host-key prompt
+```
+
+If `ORG` is empty/placeholder (`your-org-name`) or `REPO` is a placeholder (`repo-name-1`),
+you **cannot verify** — `open https://github.com/settings/keys`, print the instructions
+below, and finish **without waiting** (note "SSO not verified — config.yaml not filled" in
+the session). Otherwise:
+
+**Skip if already authorized** (idempotent — also covers orgs that don't enforce SSO):
+
+```bash
+if git ls-remote "$TEST" >/dev/null 2>&1; then
+  echo "SSH key already reaches ${ORG} — SSO authorization not needed; skipping hand-off"
+fi
+```
+
+If the above did **not** succeed, open the page and hand off:
+
+```bash
+open "https://github.com/settings/keys" 2>/dev/null || echo "Open https://github.com/settings/keys in your browser"
+```
+
+Then print these instructions clearly for the user (substitute the real `${ORG}`):
+
+> 🔐 **Authorize your SSH key for ${ORG} SSO:**
+> 1. On the opened page (github.com/settings/keys), find your key.
+> 2. Click **Configure SSO** → click **Authorize** next to **${ORG}**.
+> 3. Complete the SSO/MFA login if your browser prompts for it.
+> I'm waiting — I'll continue automatically as soon as access works.
+
+**Wait for the user (poll until authorized).** Run this with a generous Bash-tool timeout
+(set it to ~600000 ms). It re-checks every 10s for up to ~8 minutes:
+
+```bash
+AUTHED=0
+for i in $(seq 1 48); do
+  if git ls-remote "$TEST" >/dev/null 2>&1; then AUTHED=1; echo "✅ SSO authorization detected — continuing"; break; fi
+  echo "waiting for you to click Authorize for ${ORG}… ($((i*10))s elapsed)"
+  sleep 10
+done
+```
+
+- `AUTHED=1` → success; continue (later steps can now clone the org's private repos).
+- Loop finished with `AUTHED=0` → emit `STATUS: FAIL`, note that the user must click
+  **Configure SSO → Authorize** for `${ORG}`; re-running `/onboard` resumes from here.
+
 # Idempotency
 
-Safe to re-run: an existing key is reused, an already-uploaded key is fine, and auth is
-refreshed.
+Safe to re-run: an existing key is reused, an already-uploaded key is fine, auth is
+refreshed, and the SSO hand-off (Step 7) is **skipped entirely if the key already reaches
+the org** — so a re-run after authorization won't open the browser or wait again.
 
 # Error handling
 
@@ -139,4 +204,5 @@ SSH_KEY: <path to .pub used>  (reused | generated)
 GH_CLI: <gh --version>
 KEY_UPLOADED: yes | already-present | no
 VERIFY: <ssh -T git@github.com message>
+SSO: authorized (<org>) | already-authorized | not-required | not-verified (config.yaml unset) | FAILED (user must Authorize)
 ```

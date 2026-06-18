@@ -1,5 +1,5 @@
 ---
-description: Run the full new-employee macOS onboarding pipeline (machine config → Xcode CLT → Homebrew → git → GitHub SSH → editors: VS Code + Cursor → postgres → rbenv → clone repos → setup repos); resumable
+description: Run the full new-employee macOS onboarding pipeline (machine config → Xcode CLT → Homebrew → git → GitHub SSH → editors: VS Code + Cursor → postgres → rbenv → AWS VPN → clone repos → setup repos); resumable
 argument-hint: "[optional: \"Full Name\" email@gmail.com]"
 allowed-tools: Agent, Bash, Read
 model: opus
@@ -38,9 +38,10 @@ unfinished step** (skipping any already `done`), then execute these specialists
    email from `.env`, then verifies with `ssh -T git@github.com`
 6. **editor-installer** → installs VS Code + Cursor via Homebrew casks (non-interactive) + their `code`/`cursor` CLIs
 7. **postgres-installer** → installs PostgreSQL via Homebrew
-7. **rbenv-installer** → installs rbenv + ruby-build, initializes in `~/.zshrc`
-8. **git-cloner** → reads repo list from `config.yaml`, clones each into `~/repos/`
-9. **repo-setup** → for every cloned Rails repo: installs correct Ruby, bundles gems (private gems via tokens in `.env`), creates/migrates DB, verifies server boots
+8. **rbenv-installer** → installs rbenv + ruby-build, initializes in `~/.zshrc`
+9. **aws-vpn-installer** → installs the AWS VPN Client, adds the **Pattern** profile, opens the app for the user to click **Connect** + complete SSO/MFA (sudo handled by the one-time NOPASSWD bridge from `setup-sudo-bridge.sh`)
+10. **git-cloner** → reads repo list from `config.yaml`, clones each into `~/repos/`
+11. **repo-setup** → for every cloned Rails repo: installs correct Ruby, bundles gems (private gems via tokens in `.env`), creates/migrates DB, verifies server boots
 
 Each specialist records its own result (`done`/`failed`) in `onboarding-session.json`;
 the orchestrator owns the file and the resume logic.
