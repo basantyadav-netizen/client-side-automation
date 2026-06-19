@@ -15,7 +15,7 @@ permissionMode: default
 
 # Role
 
-You set up every Ruby/Rails repo that was cloned into `~/repos/`. You read the
+You set up every Ruby/Rails repo that was cloned into `~/Repositories/`. You read the
 repo list from `config.yaml` (same source as git-cloner) and run a 12-step
 setup for each one. If a step fails critically for a repo, skip to the next repo
 — do not abort the entire run.
@@ -56,13 +56,26 @@ command -v yq &>/dev/null || brew install yq
 ## 3. Parse repo list from config.yaml
 
 ```bash
-UNIQUE_REPOS=$(yq '.github.repos[]' config.yaml | sort -u)
-REPOS_DIR="$HOME/repos"
+RAW_ENTRIES=$(yq '.github.repos[]' config.yaml | sort -u)
+REPOS_DIR="$HOME/Repositories"
 
-if [ -z "$UNIQUE_REPOS" ]; then
+if [ -z "$RAW_ENTRIES" ]; then
   echo "ERROR: no repos found in config.yaml"
   # emit STATUS: FAIL and stop
 fi
+
+# Entries may be full URLs (https://.../*.git) or short names — extract just the name
+REPO_NAMES=""
+while IFS= read -r ENTRY; do
+  [ -z "$ENTRY" ] && continue
+  if echo "$ENTRY" | grep -qE '^(https?://|git@)'; then
+    NAME=$(basename "$ENTRY" .git)
+  else
+    NAME="$ENTRY"
+  fi
+  REPO_NAMES="${REPO_NAMES}${NAME}"$'\n'
+done <<< "$RAW_ENTRIES"
+UNIQUE_REPOS=$(echo "$REPO_NAMES" | sort -u | grep -v '^$')
 ```
 
 ---
@@ -76,7 +89,7 @@ REPO_PATH="$REPOS_DIR/$REPO"
 ```
 
 If `$REPO_PATH` does not exist as a directory:
-- Record `[SKIP] $REPO — not found in ~/repos/ (run git-cloner first)`
+- Record `[SKIP] $REPO — not found in ~/Repositories/ (run git-cloner first)`
 - Continue to the next repo.
 
 ---
@@ -159,19 +172,92 @@ gemset.
 
 ## Step 7 — Install all gems (including private ones)
 
-Pass tokens as environment variables; do not write them into any config file:
+Run bundle install with tokens as environment variables (never written to any
+config file). On failure, automatically identify the offending gem, install its
+latest version, update Gemfile.lock, relax any strict Gemfile pin, and retry —
+up to 10 times — before giving up.
 
 ```bash
-BUNDLE_GITHUB__COM="$GITHUB_PAT" \
-BUNDLE_ENTERPRISE__CONTRIBSYS__COM="$SIDEKIQ_TOKEN" \
-bundle install
-```
+MAX_RETRIES=10
+RETRY=0
+BUNDLE_SUCCESS=false
 
-If `bundle install` fails:
-- Check whether the error mentions a private gem auth failure; if so, note that
-  the token in `.env` may be invalid or expired.
-- Record `[FAIL] $REPO — bundle install: <first error line>` and skip to the
-  next repo. Do not proceed to DB steps with broken gems.
+while [ $RETRY -lt $MAX_RETRIES ]; do
+  BUNDLE_OUT=$(BUNDLE_GITHUB__COM="$GITHUB_PAT" \
+               BUNDLE_ENTERPRISE__CONTRIBSYS__COM="$SIDEKIQ_TOKEN" \
+               bundle install 2>&1)
+  BUNDLE_EXIT=$?
+
+  if [ $BUNDLE_EXIT -eq 0 ]; then
+    BUNDLE_SUCCESS=true
+    echo "[OK] $REPO — bundle install succeeded"
+    break
+  fi
+
+  RETRY=$((RETRY + 1))
+  echo "[RETRY $RETRY/$MAX_RETRIES] bundle install failed — analysing error..."
+
+  # Extract the failing gem name from common Bundler error patterns
+  FAILING_GEM=""
+
+  # "An error occurred while installing gemname (x.y.z)"
+  FAILING_GEM=$(echo "$BUNDLE_OUT" | grep -oE "An error occurred while installing [a-zA-Z0-9_-]+" \
+    | head -1 | awk '{print $NF}')
+
+  # "Bundler could not find compatible versions for gem 'gemname'"
+  if [ -z "$FAILING_GEM" ]; then
+    FAILING_GEM=$(echo "$BUNDLE_OUT" \
+      | grep -oiE "could not find compatible versions for gem '[a-zA-Z0-9_-]+" \
+      | head -1 | sed "s/.*gem '//")
+  fi
+
+  # "Could not find gem 'gemname'"
+  if [ -z "$FAILING_GEM" ]; then
+    FAILING_GEM=$(echo "$BUNDLE_OUT" | grep -oE "Could not find gem '[a-zA-Z0-9_-]+" \
+      | head -1 | sed "s/Could not find gem '//")
+  fi
+
+  if [ -z "$FAILING_GEM" ]; then
+    echo "[FAIL] Cannot identify the failing gem. Full output:"
+    echo "$BUNDLE_OUT"
+    break
+  fi
+
+  echo "[FIX] Identified failing gem: $FAILING_GEM — installing latest version..."
+
+  # 1. Install the latest version of the failing gem
+  gem install "$FAILING_GEM" --no-document 2>&1
+
+  # 2. Capture the version that was just installed
+  INSTALLED_VER=$(gem list "$FAILING_GEM" --local 2>/dev/null \
+    | grep "^$FAILING_GEM " \
+    | grep -oE "[0-9]+\.[0-9]+(\.[0-9]+)?" | head -1)
+
+  echo "[FIX] Installed $FAILING_GEM $INSTALLED_VER — updating Gemfile.lock..."
+
+  # 3. Update Gemfile.lock for this gem only (--conservative keeps other gems pinned)
+  BUNDLE_GITHUB__COM="$GITHUB_PAT" \
+  BUNDLE_ENTERPRISE__CONTRIBSYS__COM="$SIDEKIQ_TOKEN" \
+  bundle update "$FAILING_GEM" --conservative 2>&1 || true
+
+  # 4. If Gemfile has a strict '= x.y.z' pin for this gem, relax it to '>= installed_ver'
+  if [ -n "$INSTALLED_VER" ] && \
+     grep -qE "gem ['\"]${FAILING_GEM}['\"],\s*['\"]=[^'\"]+['\"]" Gemfile 2>/dev/null; then
+    echo "[FIX] Relaxing strict '=' pin for $FAILING_GEM in Gemfile → '>= $INSTALLED_VER'"
+    sed -i '' \
+      "s/gem ['\"]${FAILING_GEM}['\"],\s*['\"]=[^'\"]*['\"]/gem '${FAILING_GEM}', '>= ${INSTALLED_VER}'/" \
+      Gemfile
+  fi
+
+  echo "[RETRY] Retrying bundle install ($RETRY/$MAX_RETRIES)..."
+done
+
+if ! $BUNDLE_SUCCESS; then
+  echo "[FAIL] $REPO — bundle install did not succeed after $MAX_RETRIES attempts"
+  echo "Check: token validity (GITHUB_PAT / SIDEKIQ_ENTERPRISE_TOKEN in .env), network, or gem compatibility."
+  # record FAILED, skip to next repo — do not run DB steps on broken gems
+fi
+```
 
 ---
 
@@ -270,7 +356,7 @@ Maintain four arrays throughout the loop:
 - `SETUP_PASS[]` — repo completed all 12 steps successfully
 - `SETUP_PARTIAL[]` — repo completed but with non-fatal failures (e.g. seed skipped, minor DB warning)
 - `SETUP_FAIL[]` — repo had a fatal error (bundle install broken, db.yml missing, etc.)
-- `SETUP_SKIP[]` — repo folder not found in `~/repos/`
+- `SETUP_SKIP[]` — repo folder not found in `~/Repositories/`
 
 ---
 
@@ -291,10 +377,10 @@ Safe to re-run on already-set-up repos:
 | Failure | Behavior |
 |---|---|
 | `.env` missing or tokens empty | Abort entire run — STATUS: FAIL |
-| Repo not in `~/repos/` | SKIP that repo, continue |
+| Repo not in `~/Repositories/` | SKIP that repo, continue |
 | `.ruby-version` missing | WARN, use system Ruby, continue |
 | `rbenv install` fails | FAIL that repo, continue to next |
-| `bundle install` fails | FAIL that repo, skip DB steps, continue to next |
+| `bundle install` fails after 10 retries | FAIL that repo, skip DB steps, continue to next |
 | `config/database.yml` missing | FAIL that repo, skip DB steps, continue to next |
 | `db:create` DB-already-exists | WARN, continue |
 | `db:migrate` fails | FAIL DB steps, skip seed, still attempt server verify |

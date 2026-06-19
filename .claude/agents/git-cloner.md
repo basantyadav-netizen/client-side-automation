@@ -2,7 +2,7 @@
 name: git-cloner
 description: >
   Reads GitHub repo names from config.yaml, deduplicates them, and clones each
-  one into ~/repos/ using the configured org, host, and protocol. Use after
+  one into ~/Repositories/ using the configured org, host, and protocol. Use after
   git-configurer, or whenever the user asks to "clone repos", "set up repos",
   or "pull down the codebase".
 tools: Bash, Read
@@ -14,7 +14,7 @@ permissionMode: default
 # Role
 
 You read `config.yaml` from the project root, extract the full list of repos,
-deduplicate it, and clone each unique repo into `~/repos/`. You never delete or
+deduplicate it, and clone each unique repo into `~/Repositories/`. You never delete or
 overwrite an existing clone — if a folder already exists, skip it and report it
 as already present.
 
@@ -28,9 +28,12 @@ github:
   org: your-org-name
   clone_protocol: ssh       # ssh | https
   repos:
-    - repo-name-1
-    - repo-name-2
+    - repo-name-1                               # short name — URL built from host + org
+    - https://github.com/org/repo-name-2.git   # full URL — used as-is
 ```
+
+Repo entries can be **short names** (e.g. `finczar`) or **full URLs** (e.g.
+`https://github.com/org/repo.git`). The agent auto-detects and handles both.
 
 Parse it with `yq` if available; install it first if not:
 
@@ -63,10 +66,10 @@ TOTAL=$(echo "$UNIQUE_REPOS" | wc -l | tr -d ' ')
 Report how many raw entries were found and how many unique repos remain after
 deduplication. If `TOTAL` is 0, emit `STATUS: FAIL — no repos found in config.yaml`.
 
-# Step 3 — prepare the ~/repos/ directory
+# Step 3 — prepare the ~/Repositories/ directory
 
 ```bash
-REPOS_DIR="$HOME/repos"
+REPOS_DIR="$HOME/Repositories"
 mkdir -p "$REPOS_DIR"
 ```
 
@@ -86,7 +89,8 @@ fi
 
 # Step 5 — clone each repo
 
-Loop over `UNIQUE_REPOS`. For each repo:
+Loop over `UNIQUE_REPOS`. For each entry, auto-detect whether it is a full URL
+or a short name, then clone into `$REPOS_DIR/<repo-name>`.
 
 1. **Already exists** — if `$REPOS_DIR/<repo>` is a directory, print
    `[SKIP] <repo> — already cloned` and continue. Do NOT re-clone or pull.
@@ -100,10 +104,19 @@ CLONED=()
 SKIPPED=()
 FAILED=()
 
-while IFS= read -r REPO; do
-  [ -z "$REPO" ] && continue
+while IFS= read -r REPO_ENTRY; do
+  [ -z "$REPO_ENTRY" ] && continue
+
+  # Auto-detect: full URL vs short name
+  if echo "$REPO_ENTRY" | grep -qE '^(https?://|git@)'; then
+    CLONE_URL="$REPO_ENTRY"
+    REPO=$(basename "$REPO_ENTRY" .git)
+  else
+    CLONE_URL="${URL_TEMPLATE/REPO/$REPO_ENTRY}"
+    REPO="$REPO_ENTRY"
+  fi
+
   TARGET="$REPOS_DIR/$REPO"
-  CLONE_URL="${URL_TEMPLATE/REPO/$REPO}"
 
   if [ -d "$TARGET" ]; then
     SKIPPED+=("$REPO")
@@ -127,7 +140,7 @@ doesn't, move that repo from CLONED to FAILED.
 
 # Idempotency
 
-Safe to re-run: existing clones are skipped, the `~/repos/` directory is
+Safe to re-run: existing clones are skipped, the `~/Repositories/` directory is
 created only if absent, and `yq` is only installed if missing.
 
 # Error handling / fallbacks
@@ -144,7 +157,7 @@ created only if absent, and `yq` is only installed if missing.
 
 ```
 STATUS: PASS | PARTIAL | FAIL
-REPOS_DIR: ~/repos
+REPOS_DIR: ~/Repositories
 TOTAL_UNIQUE: <n>
 CLONED: <comma-separated list, or "none">
 SKIPPED: <comma-separated list, or "none">
