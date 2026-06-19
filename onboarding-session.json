@@ -1,85 +1,85 @@
 {
   "schema_version": 1,
-  "started_at": "2026-06-16T12:12:22+05:30",
-  "overall_status": "stopped",
+  "started_at": "2026-06-18T18:25:11+05:30",
+  "overall_status": "in_progress",
   "steps": [
     {
       "name": "machine-configurer",
       "status": "done",
-      "note": "MacBook Pro, 16 GB RAM, macOS 26.5.1 (arm64)",
-      "updated_at": "2026-06-16T12:12:53+05:30",
+      "note": "Captured Mac configuration: BTYADAV-PAT-IN, 16 GB RAM, macOS 26.5.1 (arm64)",
+      "updated_at": "2026-06-18T18:25:48+05:30",
       "order": 1
     },
     {
       "name": "xcode-installer",
       "status": "done",
-      "note": "Already present at /Library/Developer/CommandLineTools; clang 21.0.0, git 2.50.1",
-      "updated_at": "2026-06-16T12:13:33+05:30",
+      "note": "CLT already present: Apple clang 21.0.0, git 2.50.1",
+      "updated_at": "2026-06-18T18:26:15+05:30",
       "order": 2
     },
     {
       "name": "homebrew-installer",
       "status": "done",
-      "note": "/opt/homebrew prefix, Homebrew 6.0.1, already-present",
-      "updated_at": "2026-06-16T12:14:11+05:30",
+      "note": "Already installed at /opt/homebrew; version 6.0.2-41-g03e7623; PATH configured in .zprofile and .bash_profile",
+      "updated_at": "2026-06-18T18:26:49+05:30",
       "order": 3
     },
     {
       "name": "git-configurer",
       "status": "done",
-      "note": "configured user.name=Jane Doe and user.email from basic_info.json; git 2.50.1",
-      "updated_at": "2026-06-16T12:15:10+05:30",
+      "note": "configured user.name and user.email from .env; verified values match",
+      "updated_at": "2026-06-18T18:27:37+05:30",
       "order": 4
     },
     {
       "name": "github-ssh-configurer",
       "status": "done",
-      "note": "Reused existing ed25519 key; authenticated with PAT; key uploaded to GitHub; ssh -T git@github.com verified successfully",
-      "updated_at": "2026-06-16T12:16:25+05:30",
+      "note": "ed25519 key reused, PAT auth OK, key uploaded, ssh -T verified, patterninc SSO authorized",
+      "updated_at": "2026-06-18T18:29:29+05:30",
       "order": 5
     },
     {
       "name": "editor-installer",
       "status": "done",
-      "note": "VS Code already-present (code 1.123.0); Cursor installed via cask (cursor 3.7.36); both CLIs on PATH at /opt/homebrew/bin",
-      "updated_at": "2026-06-16T14:13:22+05:30",
+      "note": "VS Code 1.123.0 + Cursor 3.7.36 already present; both app bundles and CLIs verified on PATH",
+      "updated_at": "2026-06-18T18:30:06+05:30",
       "order": 6
     },
     {
       "name": "postgres-installer",
       "status": "done",
-      "note": "postgresql@16 (16.14) installed, PATH set, service started (listening on port 5433; 5432 occupied by another postgres instance), connection verified",
-      "updated_at": "2026-06-17T22:20:04+05:30",
+      "note": "postgresql@16 (v16.14) already installed; PATH configured in .zprofile; service started on port 5433 (5432 occupied by Postgres.app v18 in Trash); SELECT version() confirmed",
+      "updated_at": "2026-06-18T18:33:22+05:30",
       "order": 7
     },
     {
       "name": "rbenv-installer",
       "status": "done",
-      "note": "rbenv 1.3.2 installed via Homebrew; ruby-build 20260616 installed; eval \"$(rbenv init - zsh)\" added to ~/.zshrc; all verification checks passed",
-      "updated_at": "2026-06-17T22:27:47+05:30",
+      "note": "rbenv 1.3.2 already installed via Homebrew; ruby-build present; eval init line confirmed in ~/.zshrc",
+      "updated_at": "2026-06-18T18:34:18.838954+05:30",
       "order": 8
     },
     {
       "name": "aws-vpn-installer",
       "status": "done",
-      "note": "AWS VPN Client installed via pkg installer; Pattern profile already present; app opened",
-      "updated_at": "2026-06-18T10:17:59+05:30",
+      "note": "AWS VPN Client installed via pkg; Pattern profile already present; app opened",
+      "updated_at": "2026-06-18T18:35:58+05:30",
       "order": 9
     },
     {
       "name": "git-cloner",
-      "status": "failed",
-      "note": "config.yaml contains only placeholder values (org: your-org-name, repos: repo-name-1/2/3); no real repos were cloned; update config.yaml with the actual GitHub org and repo names, then re-run git-cloner",
-      "updated_at": "2026-06-18T10:30:00+05:30",
+      "status": "done",
+      "note": "Cloned 2 unique repos (amaczar, finczar) via SSH into ~/repos/; HTTPS auth failed, fell back to SSH (key already configured); .git verified for both",
+      "updated_at": "2026-06-18T18:39:00+05:30",
       "order": 10
     },
     {
       "name": "repo-setup",
-      "status": "pending",
+      "status": "in_progress",
       "note": "",
-      "updated_at": null,
+      "updated_at": "2026-06-18T18:46:49+05:30",
       "order": 11
     }
   ],
-  "updated_at": "2026-06-18T10:19:55+05:30"
+  "updated_at": "2026-06-18T18:46:49+05:30"
 }

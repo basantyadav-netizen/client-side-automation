@@ -98,73 +98,65 @@ ssh -T git@github.com
 A response containing `successfully authenticated` (GitHub returns exit code 1 on this
 greeting even on success) means it worked. Report the message.
 
-# Step 7 — authorize the key for the org's SAML SSO (hand-off + wait, only if required)
+# Step 7 — authorize the SSH key for patterninc SSO (hand-off + wait)
 
-Orgs that enforce **SAML SSO** require **each SSH key to be explicitly authorized** before
-it can reach their private repos. There is **no API** for this — it's a one-click action in
-the GitHub web UI that runs a SAML/IdP login. So the agent **opens the page, hands off to
-the user for that single click, waits until it detects access, then continues.** This must
-succeed before the later `git-cloner` step can clone the org's private repos.
+The **patterninc** org always enforces SAML SSO, so the just-uploaded SSH key must be
+authorized in the GitHub web UI before it can reach the org. There is **no API** for this —
+it's a one-click action that runs a SAML/IdP login, so you cannot do it for the user. The
+job here is: **open the page, tell the user exactly what to click, wait until they finish,
+then continue.** (Do not bother checking whether SSO is required — for patterninc it always
+is. The wait below also naturally no-ops on a re-run, since access succeeds on the first
+poll once the key is already authorized.)
 
-Read the host, org, and a test repo from `config.yaml` (do not hardcode them):
-
-```bash
-HOST=$(grep -E '^[[:space:]]*host:' config.yaml 2>/dev/null | head -1 | sed 's/#.*//' | awk '{print $2}')
-ORG=$(grep -E '^[[:space:]]*org:'  config.yaml 2>/dev/null | head -1 | sed 's/#.*//' | awk '{print $2}')
-REPO=$(grep -E '^[[:space:]]*-[[:space:]]' config.yaml 2>/dev/null | head -1 | sed 's/#.*//; s/^[[:space:]]*-[[:space:]]*//' | tr -d '[:space:]')
-HOST=${HOST:-github.com}
-TEST="git@${HOST}:${ORG}/${REPO}.git"
-export GIT_SSH_COMMAND='ssh -o StrictHostKeyChecking=accept-new'   # don't block on host-key prompt
-```
-
-If `ORG` is empty/placeholder (`your-org-name`) or `REPO` is a placeholder (`repo-name-1`),
-you **cannot verify** — `open https://github.com/settings/keys`, print the instructions
-below, and finish **without waiting** (note "SSO not verified — config.yaml not filled" in
-the session). Otherwise:
-
-**Skip if already authorized** (idempotent — also covers orgs that don't enforce SSO):
-
-```bash
-if git ls-remote "$TEST" >/dev/null 2>&1; then
-  echo "SSH key already reaches ${ORG} — SSO authorization not needed; skipping hand-off"
-fi
-```
-
-If the above did **not** succeed, open the page and hand off:
+**1. Open the keys page:**
 
 ```bash
 open "https://github.com/settings/keys" 2>/dev/null || echo "Open https://github.com/settings/keys in your browser"
 ```
 
-Then print these instructions clearly for the user (substitute the real `${ORG}`):
+**2. Print these instructions for the user, verbatim:**
 
-> 🔐 **Authorize your SSH key for ${ORG} SSO:**
-> 1. On the opened page (github.com/settings/keys), find your key.
-> 2. Click **Configure SSO** → click **Authorize** next to **${ORG}**.
-> 3. Complete the SSO/MFA login if your browser prompts for it.
-> I'm waiting — I'll continue automatically as soon as access works.
+> 🔐 **Authorize your SSH key for patterninc SSO:**
+> 1. On the opened page (github.com/settings/keys), find the key just added.
+> 2. Click **Configure SSO** → click **Authorize** next to **patterninc**.
+> 3. Complete the SSO / MFA login if your browser prompts for it.
+> I'm waiting — I'll continue automatically as soon as it's done.
 
-**Wait for the user (poll until authorized).** Run this with a generous Bash-tool timeout
-(set it to ~600000 ms). It re-checks every 10s for up to ~8 minutes:
+**3. Wait for the user to finish** by polling access to a patterninc repo (this is how the
+agent knows authorization completed — its no-tty shell can't read a keypress). Derive a
+test repo from `config.yaml`'s `repos:` (handles full URLs *or* bare names); fall back to
+`patterninc/finczar`:
 
 ```bash
+FIRST=$(grep -E '^[[:space:]]*-[[:space:]]' config.yaml 2>/dev/null | head -1 | sed 's/#.*//; s/^[[:space:]]*-[[:space:]]*//' | tr -d '[:space:]')
+case "$FIRST" in
+  http*://*|git@*) P=$(printf '%s' "$FIRST" | sed -E 's#^https?://##; s#^git@##; s#:#/#; s#\.git$##')
+                   HOST=$(printf '%s' "$P" | cut -d/ -f1); ORG=$(printf '%s' "$P" | cut -d/ -f2); REPO=$(printf '%s' "$P" | cut -d/ -f3) ;;
+  "")              HOST=github.com; ORG=patterninc; REPO=finczar ;;
+  *)               HOST=github.com; ORG=patterninc; REPO="$FIRST" ;;
+esac
+TEST="git@${HOST}:${ORG}/${REPO}.git"
+export GIT_SSH_COMMAND='ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes'
+
 AUTHED=0
-for i in $(seq 1 48); do
-  if git ls-remote "$TEST" >/dev/null 2>&1; then AUTHED=1; echo "✅ SSO authorization detected — continuing"; break; fi
-  echo "waiting for you to click Authorize for ${ORG}… ($((i*10))s elapsed)"
+for i in $(seq 1 48); do                       # ~8 min total; run with Bash timeout ~600000
+  if git ls-remote "$TEST" >/dev/null 2>&1; then AUTHED=1; echo "✅ authorization detected — continuing"; break; fi
+  echo "waiting for you to click Authorize for patterninc… ($((i*10))s elapsed)"
   sleep 10
 done
 ```
 
-- `AUTHED=1` → success; continue (later steps can now clone the org's private repos).
-- Loop finished with `AUTHED=0` → emit `STATUS: FAIL`, note that the user must click
-  **Configure SSO → Authorize** for `${ORG}`; re-running `/onboard` resumes from here.
+- `AUTHED=1` → success; finish the step and let the pipeline continue.
+- Loop ended with `AUTHED=0` → emit `STATUS: FAIL`, telling the user to click
+  **Configure SSO → Authorize** for **patterninc**; re-running `/onboard` resumes here.
+  Never fabricate success.
 
 # Idempotency
 
 Safe to re-run: an existing key is reused, an already-uploaded key is fine, auth is
-refreshed, and the SSO hand-off (Step 7) is **skipped entirely if the key already reaches
-the org** — so a re-run after authorization won't open the browser or wait again.
+refreshed, and the SSO wait (Step 7) succeeds on its **first poll** if the key is already
+authorized — so a re-run after authorization continues almost immediately without making
+you click anything again.
 
 # Error handling
 
