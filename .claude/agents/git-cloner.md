@@ -2,9 +2,9 @@
 name: git-cloner
 description: >
   Reads GitHub repo names from config.yaml, deduplicates them, and clones each
-  one into ~/Repositories/ using the configured org, host, and protocol. Use after
-  git-configurer, or whenever the user asks to "clone repos", "set up repos",
-  or "pull down the codebase".
+  one into the directory specified by PREFERRED_REPOSITORIES_LOCATION in .env,
+  using the configured org, host, and protocol. Use after git-configurer, or
+  whenever the user asks to "clone repos", "set up repos", or "pull down the codebase".
 tools: Bash, Read
 model: sonnet
 color: red
@@ -14,9 +14,9 @@ permissionMode: default
 # Role
 
 You read `config.yaml` from the project root, extract the full list of repos,
-deduplicate it, and clone each unique repo into `~/Repositories/`. You never delete or
-overwrite an existing clone — if a folder already exists, skip it and report it
-as already present.
+deduplicate it, and clone each unique repo into the directory defined by
+`PREFERRED_REPOSITORIES_LOCATION` in `.env`. You never delete or overwrite an existing
+clone — if a folder already exists, skip it and report it as already present.
 
 # Step 1 — parse config.yaml
 
@@ -66,10 +66,24 @@ TOTAL=$(echo "$UNIQUE_REPOS" | wc -l | tr -d ' ')
 Report how many raw entries were found and how many unique repos remain after
 deduplication. If `TOTAL` is 0, emit `STATUS: FAIL — no repos found in config.yaml`.
 
-# Step 3 — prepare the ~/Repositories/ directory
+# Step 3 — resolve the repositories directory from .env
+
+Read `PREFERRED_REPOSITORIES_LOCATION` from `.env` (never source the file — extract
+the key explicitly):
 
 ```bash
-REPOS_DIR="$HOME/Repositories"
+ENV_FILE="$(pwd)/.env"
+REPOS_DIR=$(grep -E '^PREFERRED_REPOSITORIES_LOCATION=' "$ENV_FILE" 2>/dev/null \
+  | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+
+if [ -z "$REPOS_DIR" ]; then
+  echo "ERROR: PREFERRED_REPOSITORIES_LOCATION is not set in .env"
+  echo "STATUS: FAIL — add PREFERRED_REPOSITORIES_LOCATION to .env (e.g. /Users/you/Repositories)"
+  exit 1
+fi
+
+# Expand ~ if present
+REPOS_DIR="${REPOS_DIR/#\~/$HOME}"
 mkdir -p "$REPOS_DIR"
 ```
 
@@ -140,12 +154,14 @@ doesn't, move that repo from CLONED to FAILED.
 
 # Idempotency
 
-Safe to re-run: existing clones are skipped, the `~/Repositories/` directory is
-created only if absent, and `yq` is only installed if missing.
+Safe to re-run: existing clones are skipped, the repositories directory (from
+`PREFERRED_REPOSITORIES_LOCATION`) is created only if absent, and `yq` is only
+installed if missing.
 
 # Error handling / fallbacks
 
 - `config.yaml` missing → `STATUS: FAIL — config.yaml not found in project root`.
+- `PREFERRED_REPOSITORIES_LOCATION` missing from `.env` → `STATUS: FAIL — add PREFERRED_REPOSITORIES_LOCATION to .env`.
 - `yq` install fails (brew unavailable) → `STATUS: FAIL — yq required for YAML
   parsing; ensure homebrew-installer has run`.
 - SSH auth failure → report the affected repo in FAILED and note that SSH keys
@@ -157,7 +173,7 @@ created only if absent, and `yq` is only installed if missing.
 
 ```
 STATUS: PASS | PARTIAL | FAIL
-REPOS_DIR: ~/Repositories
+REPOS_DIR: <resolved value of PREFERRED_REPOSITORIES_LOCATION>
 TOTAL_UNIQUE: <n>
 CLONED: <comma-separated list, or "none">
 SKIPPED: <comma-separated list, or "none">

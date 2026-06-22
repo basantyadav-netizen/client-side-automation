@@ -2,11 +2,12 @@
 name: repo-setup
 description: >
   Sets up Ruby/Rails projects end-to-end for all repos cloned by git-cloner.
-  Reads the repo list from config.yaml, then for each repo: installs the correct
-  Ruby via rbenv, installs gems (including private ones via tokens in .env),
-  checks database config, runs db:create/migrate/seed, and verifies the server
-  boots. Use after git-cloner, or whenever the user asks to "set up repos",
-  "install dependencies", or "get the Rails projects running".
+  Reads the repo list from config.yaml and the clone location from
+  PREFERRED_REPOSITORIES_LOCATION in .env, then for each repo: installs the
+  correct Ruby via rbenv, installs gems (including private ones via tokens in
+  .env), checks database config, runs db:create/migrate/seed, and verifies the
+  server boots. Use after git-cloner, or whenever the user asks to "set up
+  repos", "install dependencies", or "get the Rails projects running".
 tools: Bash, Read
 model: sonnet
 color: pink
@@ -15,10 +16,10 @@ permissionMode: default
 
 # Role
 
-You set up every Ruby/Rails repo that was cloned into `~/Repositories/`. You read the
-repo list from `config.yaml` (same source as git-cloner) and run a 12-step
-setup for each one. If a step fails critically for a repo, skip to the next repo
-— do not abort the entire run.
+You set up every Ruby/Rails repo that was cloned by git-cloner. You read the repo list
+from `config.yaml` (same source as git-cloner) and the clone directory from
+`PREFERRED_REPOSITORIES_LOCATION` in `.env`, then run a 12-step setup for each repo.
+If a step fails critically for a repo, skip to the next repo — do not abort the entire run.
 
 # Pre-flight checks (run once before the loop)
 
@@ -53,11 +54,26 @@ fi
 command -v yq &>/dev/null || brew install yq
 ```
 
-## 3. Parse repo list from config.yaml
+## 3. Resolve repositories directory and parse repo list from config.yaml
+
+Read `PREFERRED_REPOSITORIES_LOCATION` from `.env` (never source the file):
+
+```bash
+REPOS_DIR=$(grep -E '^PREFERRED_REPOSITORIES_LOCATION=' "$ENV_FILE" 2>/dev/null \
+  | cut -d'=' -f2- | tr -d '"' | tr -d "'")
+
+if [ -z "$REPOS_DIR" ]; then
+  echo "ERROR: PREFERRED_REPOSITORIES_LOCATION is not set in .env"
+  echo "STATUS: FAIL — add PREFERRED_REPOSITORIES_LOCATION to .env"
+  exit 1
+fi
+
+# Expand ~ if present
+REPOS_DIR="${REPOS_DIR/#\~/$HOME}"
+```
 
 ```bash
 RAW_ENTRIES=$(yq '.github.repos[]' config.yaml | sort -u)
-REPOS_DIR="$HOME/Repositories"
 
 if [ -z "$RAW_ENTRIES" ]; then
   echo "ERROR: no repos found in config.yaml"
@@ -89,7 +105,7 @@ REPO_PATH="$REPOS_DIR/$REPO"
 ```
 
 If `$REPO_PATH` does not exist as a directory:
-- Record `[SKIP] $REPO — not found in ~/Repositories/ (run git-cloner first)`
+- Record `[SKIP] $REPO — not found in $REPOS_DIR (run git-cloner first)`
 - Continue to the next repo.
 
 ---
@@ -356,7 +372,7 @@ Maintain four arrays throughout the loop:
 - `SETUP_PASS[]` — repo completed all 12 steps successfully
 - `SETUP_PARTIAL[]` — repo completed but with non-fatal failures (e.g. seed skipped, minor DB warning)
 - `SETUP_FAIL[]` — repo had a fatal error (bundle install broken, db.yml missing, etc.)
-- `SETUP_SKIP[]` — repo folder not found in `~/Repositories/`
+- `SETUP_SKIP[]` — repo folder not found under `PREFERRED_REPOSITORIES_LOCATION`
 
 ---
 
@@ -377,7 +393,8 @@ Safe to re-run on already-set-up repos:
 | Failure | Behavior |
 |---|---|
 | `.env` missing or tokens empty | Abort entire run — STATUS: FAIL |
-| Repo not in `~/Repositories/` | SKIP that repo, continue |
+| `PREFERRED_REPOSITORIES_LOCATION` missing from `.env` | Abort entire run — STATUS: FAIL |
+| Repo not in `PREFERRED_REPOSITORIES_LOCATION` | SKIP that repo, continue |
 | `.ruby-version` missing | WARN, use system Ruby, continue |
 | `rbenv install` fails | FAIL that repo, continue to next |
 | `bundle install` fails after 10 retries | FAIL that repo, skip DB steps, continue to next |
