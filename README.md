@@ -1,8 +1,8 @@
 # New-Employee Onboarding — Claude Code Agents (macOS)
 
-A resumable agent pipeline for Claude Code that fully onboards a new Mac, from raw hardware through running Rails apps.
+A resumable agent pipeline for Claude Code that fully onboards a new Mac, from raw hardware through a running development environment. Set `TEAM` in `.env` to route the new hire into the right discipline track after the 10 common setup steps.
 
-## Pipeline steps
+## Common steps (all teams, 1–10)
 
 | # | Agent | What it does |
 |---|-------|-------------|
@@ -10,43 +10,74 @@ A resumable agent pipeline for Claude Code that fully onboards a new Mac, from r
 | 2 | **xcode-installer** | Installs/verifies Xcode Command Line Tools |
 | 3 | **homebrew-installer** | Installs/verifies Homebrew + PATH |
 | 4 | **git-configurer** | Installs git, sets global `user.name` / `user.email` from `.env` |
-| 5 | **github-ssh-configurer** | Generates/uploads SSH key to GitHub using PAT + email from `.env`, verifies with `ssh -T git@github.com`; opens the GitHub keys page if SAML SSO needs authorizing |
+| 5 | **github-ssh-configurer** | Generates/uploads SSH key to GitHub using PAT + email from `.env`; opens the GitHub keys page if SAML SSO needs authorizing |
 | 6 | **editor-installer** | Installs VS Code + Cursor via Homebrew casks; ensures `code` / `cursor` CLIs are on PATH |
 | 7 | **postgres-installer** | Installs PostgreSQL 16 via Homebrew, starts it as a background service |
 | 8 | **aws-vpn-installer** | Installs AWS VPN Client, adds the Pattern profile, opens the app for the user to click **Connect** + complete SSO/MFA |
-| 9 | **rbenv-installer** | Installs rbenv + ruby-build via Homebrew, adds init line to `~/.zshrc` |
-| 10 | **git-cloner** | Reads repo list from `config.yaml`, clones each into `PREFERRED_REPOSITORIES_LOCATION` |
-| 11 | **repo-setup** | For every cloned Rails repo: installs correct Ruby, bundles gems, creates/migrates/seeds DB, verifies server boots |
+| 9 | **aws-cli-configurer** | Installs AWS CLI + session-manager-plugin, writes `dev` + `prod` SSO profiles, adds `ssm()` helper, runs `aws sso login` |
+| 10 | **ticket-raiser** | Raises onboarding tickets in the project management system *(TBD)* |
 
-An **onboarding-orchestrator** agent runs these in strict order, tracks progress in `onboarding-session.json`, and stops on the first failure. A `/onboard` slash command kicks the whole thing off.
+## Track 11 — Frontend (`TEAM=frontend`)
+
+| # | Agent | What it does |
+|---|-------|-------------|
+| 11.1 | **repo-cloner** | Reads repo list from `config.yaml`, clones each into `PREFERRED_REPOSITORIES_LOCATION` |
+| 11.2 | **repo-setup-frontend** | Installs nvm + Node (honoring `.nvmrc`) + pnpm, runs `pnpm install`, installs VS Code extensions for the pattern-exp monorepo |
+
+## Track 12 — Backend (`TEAM=backend`)
+
+| # | Agent | What it does |
+|---|-------|-------------|
+| 12.1 | **rbenv-installer** | Installs rbenv + ruby-build via Homebrew, adds init line to `~/.zshrc` |
+| 12.2 | **repo-cloner** | Reads repo list from `config.yaml`, clones each into `PREFERRED_REPOSITORIES_LOCATION` |
+| 12.3 | **repo-setup-backend** | For every cloned Rails repo: installs correct Ruby, bundles gems, creates/migrates/seeds DB, verifies server boots |
+
+## Track 13 — Data Engineering (`TEAM=data-engineering`)
+
+| # | Agent | What it does |
+|---|-------|-------------|
+| 13.1 | **podman-installer** | Installs and configures Podman *(TBD)* |
+| 13.2 | **repo-cloner** | Reads repo list from `config.yaml`, clones each into `PREFERRED_REPOSITORIES_LOCATION` |
+| 13.3 | **repo-setup-data-engineering** | Sets up data engineering repos *(TBD)* |
+
+## Track 14 — SRE (`TEAM=sre`)
+
+*(TBD — no steps defined yet)*
+
+An **onboarding-orchestrator** agent runs the common steps then the appropriate track in strict order, tracks progress in `onboarding-session.json`, and stops on the first failure. A `/onboard` slash command kicks the whole thing off.
 
 ## Structure
 
 ```
 your-project/
 ├── .claude/
-│   ├── settings.json                    # scoped permissions (reduces prompts)
+│   ├── settings.json                          # scoped permissions (reduces prompts)
 │   ├── agents/
-│   │   ├── onboarding-orchestrator.md   # master: sequences the 11 specialists, stop-on-fail
-│   │   ├── machine-configurer.md
-│   │   ├── xcode-installer.md
-│   │   ├── homebrew-installer.md
-│   │   ├── git-configurer.md
-│   │   ├── github-ssh-configurer.md
-│   │   ├── editor-installer.md
-│   │   ├── postgres-installer.md
-│   │   ├── aws-vpn-installer.md
-│   │   ├── rbenv-installer.md
-│   │   ├── git-cloner.md
-│   │   └── repo-setup.md
+│   │   ├── onboarding-orchestrator.md         # master: sequences all steps, team routing, stop-on-fail
+│   │   ├── machine-configurer.md              # common step 1
+│   │   ├── xcode-installer.md                 # common step 2
+│   │   ├── homebrew-installer.md              # common step 3
+│   │   ├── git-configurer.md                  # common step 4
+│   │   ├── github-ssh-configurer.md           # common step 5
+│   │   ├── editor-installer.md                # common step 6
+│   │   ├── postgres-installer.md              # common step 7
+│   │   ├── aws-vpn-installer.md               # common step 8
+│   │   ├── aws-cli-configurer.md              # common step 9
+│   │   ├── ticket-raiser.md                   # common step 10 (TBD)
+│   │   ├── repo-cloner.md                     # track 11.1 / 12.2 / 13.2
+│   │   ├── repo-setup-frontend.md             # track 11.2
+│   │   ├── rbenv-installer.md                 # track 12.1
+│   │   ├── repo-setup-backend.md              # track 12.3
+│   │   ├── podman-installer.md                # track 13.1 (TBD)
+│   │   └── repo-setup-data-engineering.md     # track 13.3 (TBD)
 │   └── commands/
-│       └── onboard.md                   # /onboard slash command
-├── .env                                 # identity + secrets (edit this!)
-├── config.yaml                          # repo list for git-cloner
-├── setup-sudo-bridge.sh                 # one-time sudo rules for Homebrew bootstrap + AWS VPN install
-├── machine_config.json                  # generated by machine-configurer
-├── onboarding-session.json              # generated: tracks step progress (resumable)
-└── onboarding-report.md                 # generated: final pass/fail summary
+│       └── onboard.md                         # /onboard slash command
+├── .env                                       # identity + secrets (edit this!)
+├── config.yaml                                # repo list for repo-cloner
+├── setup-sudo-bridge.sh                       # one-time sudo rules for Homebrew bootstrap + AWS VPN install
+├── machine_config.json                        # generated by machine-configurer
+├── onboarding-session.json                    # generated: tracks step progress (resumable)
+└── onboarding-report.md                       # generated: final pass/fail summary
 ```
 
 ## Setup
@@ -60,11 +91,12 @@ your-project/
    GITHUB_PAT=ghp_...
    GITHUB_EMAIL=name@github-connected-email.com
    PREFERRED_REPOSITORIES_LOCATION=/Users/name/Repositories
+   TEAM=frontend          # frontend | backend | data-engineering | sre
    ```
 
 3. Edit `config.yaml` to list the repos to clone.
 4. **Restart Claude Code** (agent files are loaded at session start; edits on disk need a restart).
-5. Confirm agents loaded: run `/agents` — you should see all twelve.
+5. Confirm agents loaded: run `/agents` — you should see all agents listed.
 
 ## Run it
 
@@ -72,10 +104,10 @@ your-project/
 /onboard
 ```
 
-Or pass the identity inline (the command writes `GIT_USERNAME` / `GIT_EMAIL` into `.env` for you):
+Or pass the identity and team inline (the command writes them into `.env` for you):
 
 ```
-/onboard "Jane Doe" jane.doe@gmail.com
+/onboard "Jane Doe" jane.doe@gmail.com frontend
 ```
 
 You can also trigger individual pieces in natural language, e.g.
@@ -83,18 +115,17 @@ You can also trigger individual pieces in natural language, e.g.
 
 ## Resuming after a failure
 
-`onboarding-session.json` tracks each step as `pending / in_progress / done / failed`. Re-running `/onboard` reads this file and **skips every step already marked `done`**, resuming from the first incomplete step. You never redo work that already succeeded.
+`onboarding-session.json` tracks each step as `pending / in_progress / done / failed`. Re-running `/onboard` reads this file and **skips every step already marked `done`**, resuming from the first incomplete step. The `team` is stored in the session file so re-runs don't need it re-specified.
 
 ## Important notes
 
 - **Nested subagents require Claude Code v2.1.172+.** The orchestrator uses the `Agent`
-  tool to spawn the twelve specialists. Check your version with `claude --version`.
+  tool to spawn the specialists. Check your version with `claude --version`.
   - **Fallback for older versions:** delete `onboarding-orchestrator.md` and edit
     `.claude/commands/onboard.md` so the Task section reads: *"Run these subagents in
     order, stopping on the first failure: machine-configurer, xcode-installer,
-    homebrew-installer, git-configurer, github-ssh-configurer, editor-installer,
-    postgres-installer, aws-vpn-installer, rbenv-installer, git-cloner, repo-setup."*
-    The main thread delegates to each leaf agent directly — same result, no orchestrator.
+    homebrew-installer, ..."* The main thread delegates to each leaf agent directly —
+    same result, no orchestrator.
 - **Permissions.** Without the included `settings.json` you'll get a prompt per command.
   The provided allow-list scopes exactly the commands used. For fully unattended runs you
   _can_ use `--dangerously-skip-permissions`, but prefer the allow-list — it's auditable.
@@ -106,11 +137,9 @@ You can also trigger individual pieces in natural language, e.g.
   orchestrator checks `uname -s` is `Darwin` and aborts otherwise.
 - **Sudo bridges (Homebrew + AWS VPN):** two onboarding steps need silent root in
   Claude Code's no-TTY shell. Run `setup-sudo-bridge.sh` once in a normal terminal
-  before starting onboarding. It installs three tightly scoped rules into a single
-  dropin (`/etc/sudoers.d/onboarding-bridge`): `mkdir`/`chown` pinned to the Homebrew
-  prefix only, and `installer` pinned to the aws-vpn-client Caskroom dir only. Remove
-  all rules at once with `sudo rm /etc/sudoers.d/onboarding-bridge`. See the script
-  header for full security details.
+  before starting onboarding. It installs tightly scoped rules into
+  `/etc/sudoers.d/onboarding-bridge`. Remove them with `sudo rm /etc/sudoers.d/onboarding-bridge`.
+  See the script header for full security details.
 - **"Xcode" = Command Line Tools** here (the scriptable toolchain git/Homebrew need).
   Full Xcode.app requires the App Store or `mas` with a signed-in Apple ID.
 - **Secrets:** `.env` contains your PAT and gem tokens — never commit it. It is listed in
@@ -120,9 +149,9 @@ You can also trigger individual pieces in natural language, e.g.
 
 | Agent | Model | Reason |
 |-------|-------|--------|
-| orchestrator | `opus` | Coordination and judgment |
+| orchestrator | `opus` | Coordination, judgment, and team routing |
 | machine-configurer | `haiku` | Cheap, mechanical data capture |
-| installers + git + SSH + editors | `sonnet` | Install/verify logic |
+| installers + git + SSH + editors + tracks | `sonnet` | Install/verify logic |
 
 Change the `model:` field in any agent's frontmatter, or set
 `CLAUDE_CODE_SUBAGENT_MODEL` to override all of them at once.

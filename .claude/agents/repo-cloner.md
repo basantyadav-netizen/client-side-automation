@@ -1,5 +1,5 @@
 ---
-name: git-cloner
+name: repo-cloner
 description: >
   Reads GitHub repo names from config.yaml, deduplicates them, and clones each
   one into the directory specified by PREFERRED_REPOSITORIES_LOCATION in .env,
