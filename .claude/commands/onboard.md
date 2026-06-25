@@ -1,5 +1,5 @@
 ---
-description: Run the full new-employee macOS onboarding pipeline (machine config → Xcode CLT → Homebrew → git → GitHub SSH → editors: VS Code + Cursor → postgres → rbenv → AWS VPN → clone repos → setup repos → AWS CLI); resumable
+description: Run the full new-employee macOS onboarding pipeline (machine config → Xcode CLT → Homebrew → git → GitHub SSH → editors: VS Code + Cursor → postgres → AWS VPN → rbenv → clone repos → setup repos → frontend → AWS CLI); resumable
 argument-hint: "[optional: \"Full Name\" email@gmail.com]"
 allowed-tools: Agent, Bash, Read
 model: opus
@@ -10,8 +10,9 @@ model: opus
 ## Preflight context
 - OS: !`uname -s`
 - Architecture: !`uname -m`
-- .env present: !`test -f .env && echo yes || echo "NO — create it with GIT_USERNAME, GIT_EMAIL, GITHUB_PAT, GITHUB_EMAIL"`
+- .env present: !`test -f .env && echo yes || echo "NO — create it with GIT_USERNAME, GIT_EMAIL, GITHUB_PAT, GITHUB_EMAIL, PREFERRED_REPOSITORIES_LOCATION"`
 - git identity set in .env: !`grep -qE '^GIT_USERNAME=.+' .env 2>/dev/null && grep -qE '^GIT_EMAIL=.+' .env 2>/dev/null && echo yes || echo "NO — add GIT_USERNAME / GIT_EMAIL"`
+- repos location set in .env: !`grep -qE '^PREFERRED_REPOSITORIES_LOCATION=.+' .env 2>/dev/null && echo yes || echo "NO — add PREFERRED_REPOSITORIES_LOCATION (e.g. /Users/you/Repositories)"`
 - Existing machine_config.json: !`test -f machine_config.json && echo "exists (will be refreshed)" || echo none`
 - Existing session: !`test -f onboarding-session.json && echo "found — run will RESUME from the first unfinished step" || echo "none — fresh run"`
 
@@ -38,11 +39,12 @@ unfinished step** (skipping any already `done`), then execute these specialists
    email from `.env`, then verifies with `ssh -T git@github.com`
 6. **editor-installer** → installs VS Code + Cursor via Homebrew casks (non-interactive) + their `code`/`cursor` CLIs
 7. **postgres-installer** → installs PostgreSQL via Homebrew
-8. **rbenv-installer** → installs rbenv + ruby-build, initializes in `~/.zshrc`
-9. **aws-vpn-installer** → installs the AWS VPN Client, adds the **Pattern** profile, opens the app for the user to click **Connect** + complete SSO/MFA (sudo handled by the one-time NOPASSWD bridge from `setup-sudo-bridge.sh`)
-10. **git-cloner** → reads repo list from `config.yaml`, clones each into `~/repos/`
+8. **aws-vpn-installer** → installs the AWS VPN Client, adds the **Pattern** profile, opens the app for the user to click **Connect** + complete SSO/MFA (sudo handled by the one-time NOPASSWD bridge from `setup-sudo-bridge.sh`)
+9. **rbenv-installer** → installs rbenv + ruby-build, initializes in `~/.zshrc`
+10. **git-cloner** → reads repo list from `config.yaml`, clones each into the directory specified by `PREFERRED_REPOSITORIES_LOCATION` in `.env`
 11. **repo-setup** → for every cloned Rails repo: installs correct Ruby, bundles gems (private gems via tokens in `.env`), creates/migrates DB, verifies server boots
-12. **aws-cli-configurer** → installs AWS CLI, writes `dev` + `prod` SSO profiles (shared `pattern` session), runs one `aws sso login` (opens browser, blocks until M365/MFA done), verifies both profiles
+12. **frontend-setup** → installs nvm + Node + pnpm, runs `pnpm install`, installs VS Code extensions for the pattern-exp frontend monorepo
+13. **aws-cli-configurer** → installs AWS CLI + session-manager-plugin, writes `dev` + `prod` SSO profiles (shared `pattern` session), adds the `ssm()` helper, runs one `aws sso login` (opens browser, blocks until M365/MFA done), verifies both profiles
 
 Each specialist records its own result (`done`/`failed`) in `onboarding-session.json`;
 the orchestrator owns the file and the resume logic.
