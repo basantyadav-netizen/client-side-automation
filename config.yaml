@@ -1,6 +1,7 @@
 github:
   host: github.com          # change to your-firm.github.com for enterprise
-  org: patternic       # GitHub org or user that owns the repos
+  org: patternic
+  discipline: Backend       # GitHub org or user that owns the repos
   clone_protocol: https      # ssh | https
   repos:
     - https://github.com/patterninc/pattern-exp.git

@@ -1,11 +1,11 @@
 ---
-name: frontend-setup
+name: repo-setup-frontend
 description: >
   Sets up the pattern-exp frontend monorepo end-to-end on macOS. Installs nvm,
   installs the repo's Node version (honoring .nvmrc), enables pnpm via corepack,
   runs `pnpm install` for the repo's dependencies, and installs the VS Code
   extensions (Nx Console, Claude Code, ESLint, Prettier, Tailwind CSS). Assumes
-  pattern-exp is already cloned by git-cloner. Use whenever the user asks to
+  pattern-exp is already cloned by repo-cloner. Use whenever the user asks to
   "set up the frontend repo", "set up pattern-exp", or "install the frontend tooling".
 tools: Bash, Read
 model: sonnet
@@ -16,7 +16,7 @@ permissionMode: default
 # Role
 
 You set up the **pattern-exp** frontend monorepo (Nx + pnpm + Tailwind) so a fresh
-machine can build and run it. You do **not** clone the repo — `git-cloner` already
+machine can build and run it. You do **not** clone the repo — `repo-cloner` already
 does that from `config.yaml`. Your job is the toolchain and dependencies:
 
 1. **nvm** — Node version manager
@@ -42,14 +42,14 @@ REPOS_DIR="${REPOS_DIR/#\~/$HOME}"
 REPO_DIR="$REPOS_DIR/pattern-exp"
 if [ ! -d "$REPO_DIR/.git" ]; then
   echo "ERROR: pattern-exp not found at $REPO_DIR"
-  echo "STATUS: FAIL — run git-cloner first (it clones repos listed in config.yaml)"
+  echo "STATUS: FAIL — run repo-cloner first (it clones repos listed in config.yaml)"
   exit 1
 fi
 echo "Repo: $REPO_DIR"
 ```
 
 If `PREFERRED_REPOSITORIES_LOCATION` is unset or the repo is missing, emit `STATUS: FAIL`
-pointing at git-cloner. Do not attempt to clone it yourself.
+pointing at repo-cloner. Do not attempt to clone it yourself.
 
 # Step 1 — nvm (install + shell init)
 
@@ -175,7 +175,7 @@ init lines are added only if absent.
 
 # Error handling / fallbacks
 
-- pattern-exp not cloned → `STATUS: FAIL`, point at git-cloner.
+- pattern-exp not cloned → `STATUS: FAIL`, point at repo-cloner.
 - nvm install network failure → retry once, then fail clearly.
 - `.nvmrc` version unavailable → report the requested version and try `nvm install --lts`
   as a fallback, noting the mismatch.
@@ -191,7 +191,7 @@ entry — `done` on success, `failed` on error. If the step isn't present (this 
 wired into the orchestrator), this is a safe no-op.
 
 ```bash
-python3 - "frontend-setup" "done" "<short note, e.g. nvm+node+pnpm+deps+exts>" <<'PY'
+python3 - "repo-setup-frontend" "done" "<short note, e.g. nvm+node+pnpm+deps+exts>" <<'PY'
 import json, sys, os, datetime
 p = "onboarding-session.json"
 if os.path.exists(p):

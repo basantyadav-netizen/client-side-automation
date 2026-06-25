@@ -1,13 +1,13 @@
 ---
-name: repo-setup
+name: repo-setup-backend
 description: >
-  Sets up Ruby/Rails projects end-to-end for all repos cloned by git-cloner.
+  Sets up Ruby/Rails projects end-to-end for all repos cloned by repo-cloner.
   Reads the repo list from config.yaml and the clone location from
   PREFERRED_REPOSITORIES_LOCATION in .env, then for each repo: installs the
   correct Ruby via rbenv, installs gems (including private ones via tokens in
   .env), checks database config, ensures a single local PostgreSQL owns port
   5432, runs db:create/migrate/seed, and verifies the server boots. Use after
-  git-cloner, or whenever the user asks to "set up repos", "install
+  repo-cloner, or whenever the user asks to "set up backend repos", "install
   dependencies", or "get the Rails projects running".
 tools: Bash, Read
 model: sonnet
@@ -17,8 +17,8 @@ permissionMode: default
 
 # Role
 
-You set up every Ruby/Rails repo that was cloned by git-cloner. You read the repo list
-from `config.yaml` (same source as git-cloner) and the clone directory from
+You set up every Ruby/Rails repo that was cloned by repo-cloner. You read the repo list
+from `config.yaml` (same source as repo-cloner) and the clone directory from
 `PREFERRED_REPOSITORIES_LOCATION` in `.env`, then run a 12-step setup for each repo.
 If a step fails critically for a repo, skip to the next repo — do not abort the entire run.
 
@@ -225,7 +225,7 @@ REPO_PATH="$REPOS_DIR/$REPO"
 ```
 
 If `$REPO_PATH` does not exist as a directory:
-- Record `[SKIP] $REPO — not found in $REPOS_DIR (run git-cloner first)`
+- Record `[SKIP] $REPO — not found in $REPOS_DIR (run repo-cloner first)`
 - Continue to the next repo.
 
 ---
