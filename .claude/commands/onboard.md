@@ -1,5 +1,5 @@
 ---
-description: Run the full new-employee macOS onboarding pipeline (machine config → Xcode CLT → Homebrew → git → GitHub SSH → editors: VS Code + Cursor → postgres → AWS VPN → rbenv → clone repos → setup repos); resumable
+description: Run the full new-employee macOS onboarding pipeline (machine config → Xcode CLT → Homebrew → git → GitHub SSH → editors: VS Code + Cursor → postgres → AWS VPN → rbenv → clone repos → setup repos → frontend → AWS CLI); resumable
 argument-hint: "[optional: \"Full Name\" email@gmail.com]"
 allowed-tools: Agent, Bash, Read
 model: opus
@@ -43,6 +43,8 @@ unfinished step** (skipping any already `done`), then execute these specialists
 9. **rbenv-installer** → installs rbenv + ruby-build, initializes in `~/.zshrc`
 10. **git-cloner** → reads repo list from `config.yaml`, clones each into the directory specified by `PREFERRED_REPOSITORIES_LOCATION` in `.env`
 11. **repo-setup** → for every cloned Rails repo: installs correct Ruby, bundles gems (private gems via tokens in `.env`), creates/migrates DB, verifies server boots
+12. **frontend-setup** → installs nvm + Node + pnpm, runs `pnpm install`, installs VS Code extensions for the pattern-exp frontend monorepo
+13. **aws-cli-configurer** → installs AWS CLI + session-manager-plugin, writes `dev` + `prod` SSO profiles (shared `pattern` session), adds the `ssm()` helper, runs one `aws sso login` (opens browser, blocks until M365/MFA done), verifies both profiles
 
 Each specialist records its own result (`done`/`failed`) in `onboarding-session.json`;
 the orchestrator owns the file and the resume logic.
