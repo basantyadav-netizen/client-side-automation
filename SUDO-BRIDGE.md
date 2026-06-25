@@ -175,3 +175,36 @@ sudo rm /etc/sudoers.d/aws-vpn-installer
 > it one, `setup-sudo-bridge.sh` installs a tightly-scoped `NOPASSWD: SETENV:` sudoers rule
 > for the single AWS VPN install command — so sudo never asks, never needs a TTY, and the
 > install just runs.
+
+---
+
+## 9. Sibling bridges (same pattern, different one-keyhole grant)
+
+The exact same mechanism is reused by two other one-time setup scripts. Each installs its
+own drop-in scoped to a single command — none grants general passwordless sudo.
+
+| Script | Drop-in | Grants (only) | Used by |
+|---|---|---|---|
+| `setup-sudo-bridge.sh` | `/etc/sudoers.d/aws-vpn-installer` | `installer -pkg …/aws-vpn-client/*/*.pkg -target /` | aws-vpn-installer |
+| `setup-sudo-bridge-homebrew.sh` | `/etc/sudoers.d/homebrew-bootstrap` | `mkdir -p` + `chown -R you:admin` on the Homebrew prefix | homebrew-installer |
+| `setup-sudo-bridge-ssm.sh` | `/etc/sudoers.d/aws-cli-configurer` | `installer -pkg …/session-manager-plugin/*/*.pkg -target /` | aws-cli-configurer |
+
+The **session-manager-plugin** bridge is mechanically identical to the AWS VPN one — the
+`session-manager-plugin` cask is also a pkg-cask, so installing it runs
+`sudo /usr/sbin/installer -pkg …/Caskroom/session-manager-plugin/<version>/session-manager-plugin.pkg -target /`,
+which hits the same no-TTY wall. Run it once in a normal terminal:
+
+```bash
+bash setup-sudo-bridge-ssm.sh
+```
+
+Verify / remove just like the others:
+
+```bash
+sudo -l | grep session-manager-plugin     # confirm the rule is active
+sudo rm /etc/sudoers.d/aws-cli-configurer  # remove the bridge
+```
+
+> Note: only the **plugin** needs this bridge. The `awscli` formula installs with no sudo at
+> all, so even without the bridge the CLI + SSO profiles still set up — you'd just miss the
+> SSM-connect capability (the agent reports `PARTIAL` in that case).

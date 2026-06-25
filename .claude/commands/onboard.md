@@ -1,5 +1,5 @@
 ---
-description: Run the full new-employee macOS onboarding pipeline (machine config → Xcode CLT → Homebrew → git → GitHub SSH → editors: VS Code + Cursor → postgres → rbenv → AWS VPN → clone repos → setup repos); resumable
+description: Run the full new-employee macOS onboarding pipeline (machine config → Xcode CLT → Homebrew → git → GitHub SSH → editors: VS Code + Cursor → postgres → rbenv → AWS VPN → clone repos → setup repos → AWS CLI); resumable
 argument-hint: "[optional: \"Full Name\" email@gmail.com]"
 allowed-tools: Agent, Bash, Read
 model: opus
@@ -42,6 +42,7 @@ unfinished step** (skipping any already `done`), then execute these specialists
 9. **aws-vpn-installer** → installs the AWS VPN Client, adds the **Pattern** profile, opens the app for the user to click **Connect** + complete SSO/MFA (sudo handled by the one-time NOPASSWD bridge from `setup-sudo-bridge.sh`)
 10. **git-cloner** → reads repo list from `config.yaml`, clones each into `~/repos/`
 11. **repo-setup** → for every cloned Rails repo: installs correct Ruby, bundles gems (private gems via tokens in `.env`), creates/migrates DB, verifies server boots
+12. **aws-cli-configurer** → installs AWS CLI, writes `dev` + `prod` SSO profiles (shared `pattern` session), runs one `aws sso login` (opens browser, blocks until M365/MFA done), verifies both profiles
 
 Each specialist records its own result (`done`/`failed`) in `onboarding-session.json`;
 the orchestrator owns the file and the resume logic.

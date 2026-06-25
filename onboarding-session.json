@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "started_at": "2026-06-18T18:25:11+05:30",
-  "overall_status": "in_progress",
+  "overall_status": "complete",
   "steps": [
     {
       "name": "machine-configurer",
@@ -34,8 +34,8 @@
     {
       "name": "github-ssh-configurer",
       "status": "done",
-      "note": "ed25519 key reused, PAT auth OK, key uploaded, ssh -T verified, patterninc SSO authorized",
-      "updated_at": "2026-06-18T18:29:29+05:30",
+      "note": "ed25519 key reused, PAT auth ok, key uploaded, ssh -T verified, patterninc SSO authorized",
+      "updated_at": "2026-06-19T12:15:29+05:30",
       "order": 5
     },
     {
@@ -62,24 +62,31 @@
     {
       "name": "aws-vpn-installer",
       "status": "done",
-      "note": "AWS VPN Client installed via pkg; Pattern profile already present; app opened",
-      "updated_at": "2026-06-18T18:35:58+05:30",
+      "note": "Pattern profile registered (federated=1, us-east-1); app opened for user to connect",
+      "updated_at": "2026-06-19T12:21:40+05:30",
       "order": 9
     },
     {
       "name": "git-cloner",
       "status": "done",
-      "note": "Cloned 2 unique repos (amaczar, finczar) via SSH into ~/repos/; HTTPS auth failed, fell back to SSH (key already configured); .git verified for both",
-      "updated_at": "2026-06-18T18:39:00+05:30",
+      "note": "Cloned 2 repos (amaczar, finczar) via HTTPS+PAT into ~/Desktop/; .git verified for both",
+      "updated_at": "2026-06-22T17:17:21+05:30",
       "order": 10
     },
     {
       "name": "repo-setup",
-      "status": "in_progress",
-      "note": "",
-      "updated_at": "2026-06-18T18:46:49+05:30",
+      "status": "done",
+      "note": "Both repos set up: Ruby installed (3.2.8/3.4.6), 260+190 gems bundled into vendor/bundle, DBs created+migrated, servers verified HTTP 200 (amaczar Rails 7.1.6 port 3000, finczar Rails 8.0.4 port 3001). Non-fatal: finczar seeds hit Redis not running locally; Datadog agent not running (expected in dev).",
+      "updated_at": "2026-06-22T17:25:58+05:30",
       "order": 11
+    },
+    {
+      "name": "aws-cli-configurer",
+      "status": "done",
+      "note": "dev+prod profiles written; SSO login verified; both accounts confirmed via sts get-caller-identity",
+      "updated_at": "2026-06-24T22:42:08+05:30",
+      "order": 12
     }
   ],
-  "updated_at": "2026-06-18T18:46:49+05:30"
+  "updated_at": "2026-06-24T22:42:23+05:30"
 }
