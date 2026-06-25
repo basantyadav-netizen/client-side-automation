@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# One-time setup so the onboarding agents can (a) bootstrap Homebrew and
-# (b) install the AWS VPN Client — both without a password prompt.
+# One-time setup so the onboarding agents can (a) bootstrap Homebrew,
+# (b) install the AWS VPN Client, and (c) install the AWS Session Manager plugin
+# — all without a password prompt.
 #
 # WHY THIS EXISTS
 #   Claude Code runs agent commands in a NO-TTY shell (`tty` -> "not a tty"), so
-#   `sudo` can't prompt for a password. Two onboarding steps need root silently:
+#   `sudo` can't prompt for a password. Three onboarding steps need root silently:
 #
 #   1. HOMEBREW BOOTSTRAP — on a brand-new Mac, Homebrew's install.sh needs root
 #      once to create and own its prefix (/opt/homebrew on Apple Silicon, /usr/local
@@ -19,11 +20,15 @@
 #      Without this rule the cask install fails with "a terminal is required to
 #      read the password" because there is no TTY available.
 #
+#   3. AWS SESSION MANAGER PLUGIN — same no-tty problem: the session-manager-plugin
+#      cask's internal installer step requires root silently. Scoped to that one
+#      cask's Caskroom directory only.
+#
 # SECURITY
 #   NOT blanket sudo. Every rule is pinned to exactly the path(s) it needs:
 #     • mkdir / chown are locked to the Homebrew prefix only.
-#     • installer is locked to the aws-vpn-client Caskroom dir only.
-#   `*` in the installer rule matches the version dir + pkg filename within that
+#     • installer rules are each locked to their own cask's Caskroom dir only.
+#   `*` in installer rules matches the version dir + pkg filename within that
 #   one cask directory and never crosses a `/` boundary into other paths.
 #   Remove all rules at once with:
 #     sudo rm /etc/sudoers.d/onboarding-bridge
@@ -56,6 +61,10 @@ RULES=(
   # Homebrew runs `sudo -E installer ...`; SETENV lets it preserve the environment.
   # `*/*.pkg` = version-dir / arch-specific pkg inside the aws-vpn-client cask dir.
   "${U} ALL=(root) NOPASSWD: SETENV: /usr/sbin/installer -pkg ${PREFIX}/Caskroom/aws-vpn-client/*/*.pkg -target /"
+
+  # --- AWS Session Manager Plugin installer ---
+  # Same no-tty issue as above; scoped to the session-manager-plugin cask dir only.
+  "${U} ALL=(root) NOPASSWD: SETENV: /usr/sbin/installer -pkg ${PREFIX}/Caskroom/session-manager-plugin/*/*.pkg -target /"
 )
 
 # Write to a temp file, validate it, then install atomically. Never edit sudoers in
@@ -63,7 +72,7 @@ RULES=(
 TMP="$(mktemp)"
 {
   echo "# Managed by setup-sudo-bridge.sh -- do not edit by hand."
-  echo "# Covers: Homebrew prefix bootstrap + AWS VPN Client cask install."
+  echo "# Covers: Homebrew prefix bootstrap + AWS VPN Client + AWS Session Manager Plugin."
   printf '%s\n' "${RULES[@]}"
 } > "$TMP"
 
@@ -81,10 +90,10 @@ sudo install -m 0440 -o root -g wheel "$TMP" "$DROPIN"
 rm -f "$TMP"
 
 sudo visudo -cf "$DROPIN" && echo "OK -- onboarding sudo bridge installed at ${DROPIN}"
-echo "Homebrew bootstrap and AWS VPN Client install can now run without a password prompt."
+echo "Homebrew bootstrap, AWS VPN Client, and AWS Session Manager Plugin can now install without a password prompt."
 
-# Clean up the old separate dropins if they exist.
-for OLD in aws-vpn-installer homebrew-bootstrap; do
+# Clean up old separate dropins if they exist.
+for OLD in aws-vpn-installer homebrew-bootstrap aws-cli-configurer; do
   OLD_PATH="/etc/sudoers.d/${OLD}"
   if [ -f "$OLD_PATH" ]; then
     sudo rm "$OLD_PATH"
