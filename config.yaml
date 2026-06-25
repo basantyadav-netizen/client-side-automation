@@ -3,7 +3,6 @@ github:
   org: patternic       # GitHub org or user that owns the repos
   clone_protocol: https      # ssh | https
   repos:
-    - https://github.com/patterninc/finczar.git
-    - https://github.com/patterninc/amaczar.git
+    - https://github.com/patterninc/pattern-exp.git
 
     
