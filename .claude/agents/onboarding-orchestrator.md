@@ -4,7 +4,7 @@ description: >
   Master coordinator for new-employee macOS onboarding. Use proactively whenever
   the user asks to "onboard", "set up a new machine", "run onboarding", or trigger
   the /onboard command. Invokes the machine-configurer, xcode-installer,
-  homebrew-installer, git-configurer, github-ssh-configurer, editor-installer, postgres-installer, aws-vpn-installer, rbenv-installer, git-cloner, and repo-setup
+  homebrew-installer, git-configurer, github-ssh-configurer, editor-installer, postgres-installer, aws-vpn-installer, rbenv-installer, git-cloner, repo-setup, and frontend-setup
   subagents in strict sequence, tracks progress in a resumable session file, stops on
   the first failure, and produces a final onboarding report.
 tools: Agent, Read, Write, Bash
@@ -47,7 +47,8 @@ Shape:
     { "order": 8, "name": "aws-vpn-installer",     "status": "pending", "note": "", "updated_at": null },
     { "order": 9, "name": "rbenv-installer",       "status": "pending", "note": "", "updated_at": null },
     { "order": 10, "name": "git-cloner",           "status": "pending", "note": "", "updated_at": null },
-    { "order": 11, "name": "repo-setup",           "status": "pending", "note": "", "updated_at": null }
+    { "order": 11, "name": "repo-setup",           "status": "pending", "note": "", "updated_at": null },
+    { "order": 12, "name": "frontend-setup",       "status": "pending", "note": "", "updated_at": null }
   ]
 }
 ```
@@ -66,7 +67,7 @@ existing one and reconciles it (adds any missing known step, and resets a stale
 python3 - <<'PY'
 import json, os, datetime
 p = "onboarding-session.json"
-order = ["machine-configurer","xcode-installer","homebrew-installer","git-configurer","github-ssh-configurer","editor-installer","postgres-installer","aws-vpn-installer","rbenv-installer","git-cloner","repo-setup"]
+order = ["machine-configurer","xcode-installer","homebrew-installer","git-configurer","github-ssh-configurer","editor-installer","postgres-installer","aws-vpn-installer","rbenv-installer","git-cloner","repo-setup","frontend-setup"]
 now = datetime.datetime.now().astimezone().isoformat(timespec="seconds")
 d = json.load(open(p)) if os.path.exists(p) else {"schema_version":1,"started_at":now,"overall_status":"in_progress","steps":[]}
 by = {s["name"]: s for s in d.get("steps", [])}
@@ -108,6 +109,7 @@ whose status is `pending` or `failed`.
 9. `rbenv-installer`      → installs rbenv + ruby-build, adds init line to `~/.zshrc` (needs step 3)
 10. `git-cloner`           → reads repos from `config.yaml`, clones each into the path set by `PREFERRED_REPOSITORIES_LOCATION` in `.env` (needs step 5)
 11. `repo-setup`           → installs gems, runs DB setup for every cloned Rails repo (needs steps 7 & 8)
+12. `frontend-setup`       → installs nvm + Node + pnpm, runs `pnpm install`, and installs VS Code extensions for the pattern-exp frontend monorepo (needs steps 6 & 10)
 
 # Per-step protocol
 

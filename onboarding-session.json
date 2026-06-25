@@ -69,8 +69,8 @@
     {
       "name": "git-cloner",
       "status": "done",
-      "note": "Cloned 2 repos (amaczar, finczar) via HTTPS+PAT into ~/Desktop/; .git verified for both",
-      "updated_at": "2026-06-22T17:17:21+05:30",
+      "note": "Cloned pattern-exp (https://github.com/patterninc/pattern-exp.git) into /Users/vikas.yadav/Repositories/pattern-exp via HTTPS; .git verified",
+      "updated_at": "2026-06-24T13:33:11+05:30",
       "order": 10
     },
     {
@@ -79,7 +79,14 @@
       "note": "Both repos set up: Ruby installed (3.2.8/3.4.6), 260+190 gems bundled into vendor/bundle, DBs created+migrated, servers verified HTTP 200 (amaczar Rails 7.1.6 port 3000, finczar Rails 8.0.4 port 3001). Non-fatal: finczar seeds hit Redis not running locally; Datadog agent not running (expected in dev).",
       "updated_at": "2026-06-22T17:25:58+05:30",
       "order": 11
+    },
+    {
+      "name": "frontend-setup",
+      "status": "done",
+      "note": "nvm 0.40.1 installed; node v24.18.0 (from .nvmrc); pnpm 11.5.1 via corepack; 3025 pkgs installed (frozen-lockfile); 5/5 VS Code extensions confirmed",
+      "updated_at": "2026-06-24T19:07:50+05:30",
+      "order": 12
     }
   ],
-  "updated_at": "2026-06-22T17:26:46+05:30"
+  "updated_at": "2026-06-24T19:08:10+05:30"
 }
