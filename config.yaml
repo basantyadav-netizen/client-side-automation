@@ -1,9 +1,13 @@
 github:
   host: github.com          # change to your-firm.github.com for enterprise
-  org: patternic
-  discipline: Backend       # GitHub org or user that owns the repos
+  org: patterninc
+  discipline: data-engineering       # GitHub org or user that owns the repos
   clone_protocol: https      # ssh | https
   repos:
-    - https://github.com/patterninc/pattern-exp.git
+    - https://github.com/patterninc/data-airflowhttps://github.com/patterninc/data-airflow 
+    - https://github.com/patterninc/heimdall
+    - https://github.com/patterninc/caterpillar 
+    - https://github.com/patterninc/playwright-executor 
+    - https://github.com/patterninc/playwright-server 
 
     
