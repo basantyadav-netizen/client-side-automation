@@ -10,7 +10,7 @@ description: >
   Track 11 frontend (11.1 repo-cloner, 11.2 repo-setup-frontend),
   Track 12 backend (12.1 rbenv-installer, 12.2 repo-cloner, 12.3 repo-setup-backend),
   Track 13 data-engineering (13.1 podman-installer, 13.2 repo-cloner, 13.3 repo-setup-data-engineering),
-  Track 14 sre (TBD). Tracks progress in a resumable session file, stops on the
+  Track 14 sre (14.1 repo-cloner, 14.2 repo-setup-sre-backend). Tracks progress in a resumable session file, stops on the
   first failure, and produces a final onboarding report.
 tools: Agent, Read, Write, Bash
 model: opus
@@ -38,7 +38,7 @@ already set). Each track is numbered with a `X.Y` scheme:
 | `frontend` | Track 11 | 11.1 repo-cloner → 11.2 repo-setup-frontend |
 | `backend` | Track 12 | 12.1 rbenv-installer → 12.2 repo-cloner → 12.3 repo-setup-backend |
 | `data-engineering` | Track 13 | 13.1 podman-installer → 13.2 repo-cloner → 13.3 repo-setup-data-engineering |
-| `sre` | Track 14 | *(TBD — no steps defined yet)* |
+| `sre` | Track 14 | 14.1 repo-cloner → 14.2 repo-setup-sre-backend |
 
 # The session file — `onboarding-session.json`
 
@@ -70,6 +70,7 @@ Shape:
     // Track 11 (frontend):         "11.1" repo-cloner, "11.2" repo-setup-frontend
     // Track 12 (backend):          "12.1" rbenv-installer, "12.2" repo-cloner, "12.3" repo-setup-backend
     // Track 13 (data-engineering): "13.1" podman-installer, "13.2" repo-cloner, "13.3" repo-setup-data-engineering
+    // Track 14 (sre):              "14.1" repo-cloner, "14.2" repo-setup-sre-backend
     { "order": "11.1", "name": "repo-cloner",         "status": "pending", "note": "", "updated_at": null },
     { "order": "11.2", "name": "repo-setup-frontend", "status": "pending", "note": "", "updated_at": null }
   ]
@@ -104,7 +105,7 @@ TEAM_STEPS = {
     "frontend":          [("11.1","repo-cloner"),("11.2","repo-setup-frontend")],
     "backend":           [("12.1","rbenv-installer"),("12.2","repo-cloner"),("12.3","repo-setup-backend")],
     "data-engineering":  [("13.1","podman-installer"),("13.2","repo-cloner"),("13.3","repo-setup-data-engineering")],
-    "sre":               [],  # TBD
+    "sre":               [("14.1","repo-cloner"),("14.2","repo-setup-sre-backend")],
 }
 
 d = (json.load(open(p)) if os.path.exists(p)
@@ -148,6 +149,28 @@ for order_str, name in TEAM_STEPS[team]:
     steps.append(s)
 
 d["steps"] = steps
+
+# --- AWS SSO token-freshness gate -------------------------------------------
+# A `done` aws-cli-configurer is normally skipped on resume. But the SSO token
+# is short-lived (~12 h) and a prior run may have been interrupted before login
+# completed, so the token may be missing/expired. If so, reset the step to
+# `pending` so resume RE-RUNS it and the browser reopens for a fresh login.
+import subprocess
+aws = next((s for s in steps if s["name"] == "aws-cli-configurer"), None)
+if aws and aws["status"] == "done":
+    try:
+        rc = subprocess.run(
+            ["aws", "sts", "get-caller-identity", "--profile", "dev"],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=20,
+        ).returncode
+    except Exception:
+        rc = 1
+    if rc != 0:
+        aws["status"] = "pending"
+        aws["note"] = "SSO token missing/expired — re-running to reopen browser login"
+        aws["updated_at"] = now
+        print("[AWS] SSO token invalid — aws-cli-configurer reset to pending (browser will reopen).")
+
 d["updated_at"] = now
 json.dump(d, open(p, "w"), indent=2)
 
@@ -200,7 +223,8 @@ whose status is `pending` or `failed`.
 
 ## Track 14 — SRE (`team = sre`)
 
-*(No steps defined yet — TBD)*
+14.1. `repo-cloner`             → reads repos from `config.yaml`, clones each into `PREFERRED_REPOSITORIES_LOCATION` (needs step 5). For SRE, `config.yaml`'s `github.repos` should include `sre-utils`.
+14.2. `repo-setup-sre-backend` → ensures Python, ensures the AWS CLI (delegates to `aws-cli-configurer` if missing), runs `sre-utils/ssologin.py` to create the AWS SSO profiles, installs the tools pinned in `config.yaml` under `sre.tools` (terraform, node, ruby, golang), and ensures Podman (delegates to `podman-installer` if missing) (needs steps 3, 9 & 14.1). If `sre-utils` was not cloned by 14.1 (e.g. not in `config.yaml`), this step self-clones it as a fallback. Note: it delegates to `aws-cli-configurer` / `podman-installer` itself via the Agent tool, so they need not be separate track steps.
 
 # Per-step protocol
 

@@ -210,9 +210,13 @@ You only need to do this ONCE — it authorizes both the dev and prod profiles.
 Waiting for you to finish…
 ```
 
-Then:
+Then force a **clean** login so the device-authorization **browser flow always
+reopens** — even on an `/onboard` resume where a stale/expired token might still be
+cached. `aws sso logout` clears any cached session first (a harmless no-op when there's
+none), so `aws sso login` can't silently short-circuit; it must reopen the browser:
 
 ```bash
+aws sso logout 2>/dev/null || true   # clear any stale/expired token → guarantees a fresh browser prompt
 aws sso login --profile dev
 ```
 
@@ -249,8 +253,8 @@ but still treat `dev` success as a partial pass.
 Safe to re-run: installs are skipped if `aws` / `session-manager-plugin` are already present;
 the config is rewritten from canonical values (old one is backed up first); the `ssm()`
 helper is appended to `~/.zshrc` only if its marker isn't already there (no duplication); and
-`aws sso login` simply refreshes the token (this is also the normal command to run once every
-~12 hours when the token expires).
+the `aws sso logout` + `aws sso login` pair forces a fresh browser login every run (this is also
+the normal way to re-auth once every ~12 hours when the token expires).
 
 # Session tracking (update your own step before finishing)
 

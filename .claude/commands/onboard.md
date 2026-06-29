@@ -60,7 +60,8 @@ execute these specialists **sequentially**, stopping on the first failure:
 13.3. **repo-setup-data-engineering** → sets up data engineering repos *(TBD)*
 
 ### Track 14 — SRE (`TEAM=sre`)
-*(TBD — no steps defined yet)*
+14.1. **repo-cloner** → reads repo list from `config.yaml`, clones each into `PREFERRED_REPOSITORIES_LOCATION` (for SRE, ensure `github.repos` includes `sre-utils`)
+14.2. **repo-setup-sre-backend** → ensures Python (Homebrew), ensures the AWS CLI (delegates to **aws-cli-configurer** if missing), runs `sre-utils/ssologin.py` to create the AWS SSO profiles, installs the tools pinned in `config.yaml` (`sre.tools`: terraform, node, ruby, golang — latest when unpinned), and ensures Podman (delegates to **podman-installer** if missing). Falls back to self-cloning `sre-utils` if 14.1 didn't.
 
 Each specialist records its own result (`done`/`failed`) in `onboarding-session.json`;
 the orchestrator owns the file and the resume logic.

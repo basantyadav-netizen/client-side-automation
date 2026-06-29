@@ -1,13 +1,20 @@
 github:
   host: github.com          # change to your-firm.github.com for enterprise
   org: patterninc
-  discipline: data-engineering       # GitHub org or user that owns the repos
+  discipline: sre       # GitHub org or user that owns the repos
   clone_protocol: https      # ssh | https
   repos:
-    - https://github.com/patterninc/data-airflowhttps://github.com/patterninc/data-airflow 
-    - https://github.com/patterninc/heimdall
-    - https://github.com/patterninc/caterpillar 
-    - https://github.com/patterninc/playwright-executor 
-    - https://github.com/patterninc/playwright-server 
+    - https://github.com/patterninc/sre-utils
 
-    
+# SRE team configuration (used by the repo-setup-sre-backend agent).
+# The SRE team's primary repo is sre-utils (cloned under PREFERRED_REPOSITORIES_LOCATION).
+# Pin a tool to an exact version (e.g. "1.9.8") to install that version, or use
+# "latest" / omit the key to install the latest stable release.
+sre:
+  repo: sre-utils
+  tools:
+    terraform: latest
+    node: latest
+    ruby: latest
+    golang: latest
+    dbeaver: latest   # DBeaver Community DB GUI — installed via Homebrew cask (latest only)
